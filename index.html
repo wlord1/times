@@ -52,12 +52,16 @@
     @media (max-width: 850px){ .quiz{grid-template-columns:1fr} }
 
     .equation{
+      position:relative;
       font-size: clamp(32px, 7vw, 60px);
       font-weight:800; letter-spacing:.5px; text-align:center;
       padding:24px; border-radius:18px; border:1px solid rgba(255,255,255,0.08);
       background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
       min-height:120px; display:flex; align-items:center; justify-content:center;
     }
+    /* thin per-question countdown bar (quiz mode) */
+    .qtimer{position:absolute; left:0; top:0; height:4px; background:linear-gradient(90deg, #ef4444, #f59e0b, #10b981); width:0%}
+
     .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
     .answer-area input{
       width:140px; max-width:44vw; padding:12px 14px; border-radius:12px;
@@ -93,21 +97,20 @@
 </head>
 <body>
   <div class="app">
-    <!-- Perfectly-proportioned background heart (Material-style path) -->
+    <!-- Perfectly-proportioned background heart -->
     <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
     </svg>
     <div class="card">
       <h1>
         <span class="heart" aria-label="for my kiddo" title="for my kiddo">
-          <!-- Perfect heart icon -->
           <svg viewBox="0 0 24 24" fill="white" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </span>
         Times Tables Practice
       </h1>
-      <div class="subtitle">Pick tables, choose a mode, and go! Answers with Enter.</div>
+      <div class="subtitle">Pick tables, choose a mode, and go! Answers with Enter (Practice) or auto-timeout (Quiz).</div>
 
       <div class="controls row">
         <div class="card" style="flex:2; min-width:280px">
@@ -125,12 +128,15 @@
           <div class="section-title">2) Mode</div>
           <div class="stack">
             <label><input type="radio" name="mode" value="practice" checked> Practice</label>
-            <label><input type="radio" name="mode" value="timed"> Timed (60s)</label>
-            <label><input type="radio" name="mode" value="fixed"> Fixed # Questions</label>
+            <label><input type="radio" name="mode" value="quiz"> Quiz (5s each)</label>
           </div>
           <div class="spacer"></div>
-          <div class="stack">
-            <label>Questions: <input id="questionCount" type="number" min="5" max="50" step="5" value="20" style="width:80px"></label>
+          <div class="stack" id="practiceConfig">
+            <label>Practice questions (optional): <input id="practiceCount" type="number" min="5" max="200" step="5" placeholder="∞" style="width:90px"></label>
+          </div>
+          <div class="stack hidden" id="quizConfig">
+            <label>Quiz questions: <input id="quizCount" type="number" min="5" max="200" step="5" value="20" style="width:90px"></label>
+            <span class="badge" title="Per-question time">⏱ 5s</span>
           </div>
           <div class="spacer"></div>
           <div class="stack">
@@ -145,7 +151,7 @@
 
     <div class="quiz">
       <div class="card">
-        <div id="equation" class="equation">Pick tables and press Start</div>
+        <div id="equation" class="equation">Pick tables and press Start<div class="qtimer" id="qtimer"></div></div>
         <div class="spacer"></div>
         <div class="answer-area">
           <input id="answer" type="number" inputmode="numeric" placeholder="?" disabled />
@@ -186,7 +192,11 @@
     const startBtn = document.getElementById('startBtn');
     const resetStatsBtn = document.getElementById('resetStatsBtn');
 
+    const practiceConfig = document.getElementById('practiceConfig');
+    const quizConfig = document.getElementById('quizConfig');
+
     const equationEl = document.getElementById('equation');
+    const qtimerEl = document.getElementById('qtimer');
     const answerEl = document.getElementById('answer');
     const submitBtn = document.getElementById('submitBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -198,7 +208,8 @@
     const streakBadge = document.getElementById('streakBadge');
     const progressBar = document.getElementById('progressBar');
 
-    const questionCountEl = document.getElementById('questionCount');
+    const practiceCountEl = document.getElementById('practiceCount');
+    const quizCountEl = document.getElementById('quizCount');
 
     const statsTableBody = document.querySelector('#statsTable tbody');
 
@@ -208,11 +219,16 @@
     let selected = new Set();
     let mode = 'practice';
     let running = false;
-    let timer = 0, timerInt = null;
+    let timer = 0, timerInt = null; // session timer (informational)
     let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
 
     let pool = []; // [{a,b,answer}]
     let current = null;
+
+    // quiz per-question timing
+    const QUIZ_SECONDS = 5;
+    let perQDeadline = 0; // timestamp (ms)
+    let perQTick = null;  // interval id
 
     const FACT_KEY = 'timesTableStats_v1';
 
@@ -246,8 +262,19 @@
     }
 
     document.querySelectorAll('input[name="mode"]').forEach(r=>{
-      r.addEventListener('change', ()=>{ mode = r.value; })
+      r.addEventListener('change', ()=>{
+        mode = r.value;
+        toggleModeUI();
+      })
     });
+
+    function toggleModeUI(){
+      const isQuiz = mode === 'quiz';
+      practiceConfig.classList.toggle('hidden', isQuiz);
+      quizConfig.classList.toggle('hidden', !isQuiz);
+      // Buttons/behaviors will also adapt on start()
+    }
+    toggleModeUI();
 
     // --- Stats (localStorage) ---
     const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
@@ -302,30 +329,44 @@
       if (!selected.size){ selectAllBtn.click(); }
       pool = buildPool();
       mode = document.querySelector('input[name="mode"]:checked').value;
-      totalQ = mode==='fixed' ? clamp(parseInt(questionCountEl.value)||20, 5, 50) : Infinity;
+
+      // counts per mode
+      if (mode==='practice'){
+        const n = parseInt(practiceCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
+      } else { // quiz
+        const n = parseInt(quizCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
+      }
+
       currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0;
-      running = true; answerEl.disabled=false; submitBtn.disabled=false; nextBtn.disabled=false;
-      resultBadge.textContent = 'Good luck!'; resultBadge.style.borderColor='rgba(255,255,255,.15)';
-      equationEl.textContent = 'Ready...';
+      running = true; answerEl.disabled=false; nextBtn.disabled=false;
+      resultBadge.textContent = mode==='quiz' ? 'Quiz: 5s per question' : 'Practice mode';
+      resultBadge.style.borderColor='rgba(255,255,255,.15)';
+      equationEl.querySelector('#qtimer').style.width = '0%';
+      equationEl.classList.remove('shake');
+
+      // Buttons/keys per mode
+      if (mode==='quiz'){
+        submitBtn.disabled = true; // no manual submit in quiz
+      } else {
+        submitBtn.disabled = false;
+      }
+
       progress();
       next();
-      if (mode==='timed') startTimer(); else stopTimer();
+
+      stopTimer(); // reset session timer
+      timerInt = setInterval(()=>{ timer += 1; timerBadge.textContent = `⏱ ${timer}s`; }, 1000);
+
       answerEl.focus();
-      // ensure the quiz card stays in view when starting, even if stats are long
       document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
 
-    function startTimer(){
-      stopTimer();
-      timerInt = setInterval(()=>{
-        timer += 1; timerBadge.textContent = `⏱ ${timer}s`;
-        if (mode==='timed' && timer>=60){ finish(); }
-      }, 1000);
-    }
     function stopTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
 
     function finish(){
-      running=false; stopTimer(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      running=false; stopTimer(); clearPerQTick(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
       equationEl.textContent = `Done! Score: ${correct} correct, ${wrong} wrong.`;
       resultBadge.textContent = 'Session complete';
       fireConfetti();
@@ -333,13 +374,16 @@
 
     function next(){
       if (!running) return;
-      if (mode==='fixed' && currentQ>=totalQ){ return finish(); }
+      if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
       if (pool.length===0) pool = buildPool();
       current = pool[Math.floor(Math.random()*pool.length)];
-      equationEl.textContent = `${current.a} × ${current.b} = ?`;
+      equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
+      qtimerElRef();
       answerEl.value='';
       currentQ++;
       progress();
+
+      if (mode==='quiz') startPerQCountdown(); else clearPerQTick();
     }
 
     function progress(){
@@ -352,19 +396,69 @@
 
     function submit(){
       if (!running || !current) return;
+      if (mode==='quiz') return; // disabled in quiz
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok);
+    }
+
+    function gradeAndAdvance(ok){
+      bumpStats(current.a, current.b, ok);
+      if (ok){
+        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
+        tinyBurst();
+      } else {
+        wrong++; streak=0; flashBadge(resultBadge, `Not quite. It was ${current.answer}`, 'err');
+      }
+      progress();
+      // only auto-advance immediately in practice (on correct) and always in quiz when timer fires
+      if (mode==='practice'){
+        next();
+        if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
+      }
+    }
+
+    // --- Per-question quiz countdown ---
+    function qtimerElRef(){
+      qtimerEl = document.getElementById('qtimer');
+    }
+    function clearPerQTick(){ if (perQTick){ clearInterval(perQTick); perQTick=null; } }
+
+    function startPerQCountdown(){
+      clearPerQTick();
+      const duration = QUIZ_SECONDS * 1000;
+      const start = performance.now();
+      perQDeadline = start + duration;
+      // animate the thin bar and update badge
+      perQTick = setInterval(()=>{
+        const now = performance.now();
+        const remainingMs = Math.max(0, perQDeadline - now);
+        const remainingS = Math.ceil(remainingMs/1000);
+        timerBadge.textContent = `⏱ ${remainingS}s`;
+        const pct = 100 * (1 - (remainingMs / duration));
+        if (qtimerEl) qtimerEl.style.width = pct + '%';
+        if (remainingMs <= 0){
+          clearPerQTick();
+          autoGradeQuiz();
+        }
+      }, 50);
+    }
+
+    function autoGradeQuiz(){
+      if (!running || !current) return;
       const value = parseInt(answerEl.value,10);
       const ok = (value === current.answer);
       bumpStats(current.a, current.b, ok);
       if (ok){
         correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
         tinyBurst();
-        next(); // auto-advance on correct
       } else {
-        wrong++; streak=0; flashBadge(resultBadge, `Not quite. It was ${current.answer}`, 'err');
+        wrong++; streak=0; flashBadge(resultBadge, `Time! Answer: ${current.answer}`, 'err');
       }
       progress();
-      // keep focus without yanking scroll: only refocus if it's visible
-      if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
+      // move to next question (no user action)
+      if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
+      else { next(); answerEl.focus(); }
     }
 
     function flashBadge(el, text, type){
@@ -420,9 +514,15 @@
     // --- Events ---
     startBtn.onclick = start;
     submitBtn.onclick = submit;
-    nextBtn.onclick = next;
+    nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
 
-    answerEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter') submit(); });
+    // Keyboard behavior: Enter only in Practice mode
+    answerEl.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter'){
+        if (mode==='practice') submit();
+        else e.preventDefault();
+      }
+    });
   </script>
 </body>
 </html>
