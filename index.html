@@ -59,8 +59,8 @@
       background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
       min-height:120px; display:flex; align-items:center; justify-content:center;
     }
-    /* thin per-question countdown bar (quiz mode) */
-    .qtimer{position:absolute; left:0; top:0; height:4px; background:linear-gradient(90deg, #ef4444, #f59e0b, #10b981); width:0%}
+    /* smooth per-question countdown bar (quiz mode) */
+    .qtimer{position:absolute; left:0; top:0; height:4px; background:linear-gradient(90deg, #ef4444, #f59e0b, #10b981); width:100%; transform-origin:left; transform:scaleX(0); will-change:transform}
 
     .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
     .answer-area input{
@@ -110,7 +110,7 @@
         </span>
         Times Tables Practice
       </h1>
-      <div class="subtitle">Pick tables, choose a mode, and go! Answers with Enter (Practice) or auto-timeout (Quiz).</div>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or 5s auto (Quiz).</div>
 
       <div class="controls row">
         <div class="card" style="flex:2; min-width:280px">
@@ -141,6 +141,7 @@
           <div class="spacer"></div>
           <div class="stack">
             <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary hidden" id="playAgainBtn">Play Again</button>
             <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
           </div>
         </div>
@@ -190,6 +191,7 @@
     const selectAllBtn = document.getElementById('selectAll');
     const clearAllBtn = document.getElementById('clearAll');
     const startBtn = document.getElementById('startBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
     const resetStatsBtn = document.getElementById('resetStatsBtn');
 
     const practiceConfig = document.getElementById('practiceConfig');
@@ -228,7 +230,8 @@
     // quiz per-question timing
     const QUIZ_SECONDS = 5;
     let perQDeadline = 0; // timestamp (ms)
-    let perQTick = null;  // interval id
+    let perQRAF = null;   // requestAnimationFrame id
+    let lastWholeSec = Infinity;
 
     const FACT_KEY = 'timesTableStats_v1';
 
@@ -272,7 +275,6 @@
       const isQuiz = mode === 'quiz';
       practiceConfig.classList.toggle('hidden', isQuiz);
       quizConfig.classList.toggle('hidden', !isQuiz);
-      // Buttons/behaviors will also adapt on start()
     }
     toggleModeUI();
 
@@ -334,41 +336,38 @@
       if (mode==='practice'){
         const n = parseInt(practiceCountEl.value,10);
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
+        submitBtn.disabled = false;
       } else { // quiz
         const n = parseInt(quizCountEl.value,10);
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
+        submitBtn.disabled = true; // no manual submit in quiz
       }
 
-      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0;
-      running = true; answerEl.disabled=false; nextBtn.disabled=false;
+      // reset session state
+      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
+      answerEl.disabled=false; nextBtn.disabled=false;
+      playAgainBtn.classList.add('hidden');
       resultBadge.textContent = mode==='quiz' ? 'Quiz: 5s per question' : 'Practice mode';
       resultBadge.style.borderColor='rgba(255,255,255,.15)';
-      equationEl.querySelector('#qtimer').style.width = '0%';
-      equationEl.classList.remove('shake');
-
-      // Buttons/keys per mode
-      if (mode==='quiz'){
-        submitBtn.disabled = true; // no manual submit in quiz
-      } else {
-        submitBtn.disabled = false;
-      }
+      setTimerBadge(0);
 
       progress();
       next();
 
-      stopTimer(); // reset session timer
-      timerInt = setInterval(()=>{ timer += 1; timerBadge.textContent = `⏱ ${timer}s`; }, 1000);
+      stopSessionTimer();
+      timerInt = setInterval(()=>{ timer += 1; }, 1000); // we show per-question time on badge instead
 
       answerEl.focus();
       document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
 
-    function stopTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
+    function stopSessionTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
 
     function finish(){
-      running=false; stopTimer(); clearPerQTick(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
-      equationEl.textContent = `Done! Score: ${correct} correct, ${wrong} wrong.`;
-      resultBadge.textContent = 'Session complete';
+      running=false; stopSessionTimer(); clearPerQAnim(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      equationEl.innerHTML = `Done! Score: ${correct} correct, ${wrong} wrong.`;
+      playAgainBtn.classList.remove('hidden');
+      setTimerBadge(0);
       fireConfetti();
     }
 
@@ -378,12 +377,13 @@
       if (pool.length===0) pool = buildPool();
       current = pool[Math.floor(Math.random()*pool.length)];
       equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
-      qtimerElRef();
+      qtimerEl = document.getElementById('qtimer');
+      qtimerEl.style.transform = 'scaleX(0)';
       answerEl.value='';
       currentQ++;
       progress();
 
-      if (mode==='quiz') startPerQCountdown(); else clearPerQTick();
+      if (mode==='quiz') startPerQCountdown(); else clearPerQAnim();
     }
 
     function progress(){
@@ -399,64 +399,57 @@
       if (mode==='quiz') return; // disabled in quiz
       const value = parseInt(answerEl.value,10);
       const ok = (value === current.answer);
-      gradeAndAdvance(ok);
+      gradeAndAdvance(ok, /*auto*/ false);
     }
 
-    function gradeAndAdvance(ok){
+    function gradeAndAdvance(ok, auto){
       bumpStats(current.a, current.b, ok);
       if (ok){
         correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
         tinyBurst();
       } else {
-        wrong++; streak=0; flashBadge(resultBadge, `Not quite. It was ${current.answer}`, 'err');
+        wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
       }
       progress();
-      // only auto-advance immediately in practice (on correct) and always in quiz when timer fires
       if (mode==='practice'){
         next();
         if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
       }
     }
 
-    // --- Per-question quiz countdown ---
-    function qtimerElRef(){
-      qtimerEl = document.getElementById('qtimer');
-    }
-    function clearPerQTick(){ if (perQTick){ clearInterval(perQTick); perQTick=null; } }
+    // --- Per-question quiz countdown (smooth via rAF + transform, minimal layout thrash) ---
+    function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
 
     function startPerQCountdown(){
-      clearPerQTick();
+      clearPerQAnim();
       const duration = QUIZ_SECONDS * 1000;
       const start = performance.now();
       perQDeadline = start + duration;
-      // animate the thin bar and update badge
-      perQTick = setInterval(()=>{
-        const now = performance.now();
+      lastWholeSec = Infinity;
+
+      function tick(now){
         const remainingMs = Math.max(0, perQDeadline - now);
         const remainingS = Math.ceil(remainingMs/1000);
-        timerBadge.textContent = `⏱ ${remainingS}s`;
-        const pct = 100 * (1 - (remainingMs / duration));
-        if (qtimerEl) qtimerEl.style.width = pct + '%';
+        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = remainingS; }
+        const pct = 1 - (remainingMs / duration);
+        if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
         if (remainingMs <= 0){
-          clearPerQTick();
+          clearPerQAnim();
           autoGradeQuiz();
+          return;
         }
-      }, 50);
+        perQRAF = requestAnimationFrame(tick);
+      }
+      perQRAF = requestAnimationFrame(tick);
     }
+
+    function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
 
     function autoGradeQuiz(){
       if (!running || !current) return;
       const value = parseInt(answerEl.value,10);
       const ok = (value === current.answer);
-      bumpStats(current.a, current.b, ok);
-      if (ok){
-        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
-        tinyBurst();
-      } else {
-        wrong++; streak=0; flashBadge(resultBadge, `Time! Answer: ${current.answer}`, 'err');
-      }
-      progress();
-      // move to next question (no user action)
+      gradeAndAdvance(ok, /*auto*/ true);
       if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
       else { next(); answerEl.focus(); }
     }
@@ -513,6 +506,7 @@
 
     // --- Events ---
     startBtn.onclick = start;
+    playAgainBtn.onclick = start;
     submitBtn.onclick = submit;
     nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
 
@@ -526,3 +520,4 @@
   </script>
 </body>
 </html>
+
