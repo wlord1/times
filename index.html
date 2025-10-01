@@ -224,7 +224,7 @@
     let timer = 0, timerInt = null; // session timer (informational)
     let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
 
-    let pool = []; // [{a,b,answer}]
+    let pool = []; // deck of remaining questions (no repeats within a lap)
     let current = null;
 
     // quiz per-question timing
@@ -316,15 +316,18 @@
     // --- Quiz generation ---
     function buildPool(){
       const sel = selected.size ? Array.from(selected) : Array.from({length:12},(_,i)=>i+1);
-      const pool = [];
+      const deck = [];
       for (const a of sel){
         for (let b=0;b<=12;b++){
-          pool.push({a,b,answer:a*b});
+          deck.push({a,b,answer:a*b});
         }
       }
-      // shuffle
-      for (let i=pool.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [pool[i], pool[j]]=[pool[j], pool[i]] }
-      return pool;
+      // shuffle (Fisher–Yates)
+      for (let i=deck.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
     }
 
     function start(){
@@ -337,26 +340,27 @@
         const n = parseInt(practiceCountEl.value,10);
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
         submitBtn.disabled = false;
+        nextBtn.disabled = false;
       } else { // quiz
         const n = parseInt(quizCountEl.value,10);
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
-        submitBtn.disabled = true; // no manual submit in quiz
+        submitBtn.disabled = true;   // no manual submit in quiz
+        nextBtn.disabled = true;     // no manual next in quiz
       }
 
       // reset session state
       currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
-      answerEl.disabled=false; nextBtn.disabled=false;
+      answerEl.disabled=false;
       playAgainBtn.classList.add('hidden');
       resultBadge.textContent = mode==='quiz' ? 'Quiz: 5s per question' : 'Practice mode';
       resultBadge.style.borderColor='rgba(255,255,255,.15)';
       setTimerBadge(0);
-
       progress();
-      next();
 
       stopSessionTimer();
-      timerInt = setInterval(()=>{ timer += 1; }, 1000); // we show per-question time on badge instead
+      timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
 
+      next(); // draw first question
       answerEl.focus();
       document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
@@ -364,18 +368,24 @@
     function stopSessionTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
 
     function finish(){
-      running=false; stopSessionTimer(); clearPerQAnim(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      running=false; stopSessionTimer(); clearPerQAnim();
+      answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
       equationEl.innerHTML = `Done! Score: ${correct} correct, ${wrong} wrong.`;
       playAgainBtn.classList.remove('hidden');
       setTimerBadge(0);
       fireConfetti();
     }
 
+    // --- No-repeat draw (until deck is empty), then reshuffle for next lap ---
     function next(){
       if (!running) return;
       if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
-      if (pool.length===0) pool = buildPool();
-      current = pool[Math.floor(Math.random()*pool.length)];
+      if (pool.length === 0) pool = buildPool();
+
+      // draw without replacement
+      const j = Math.floor(Math.random() * pool.length);
+      current = pool.splice(j, 1)[0];
+
       equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
       qtimerEl = document.getElementById('qtimer');
       qtimerEl.style.transform = 'scaleX(0)';
@@ -417,7 +427,7 @@
       }
     }
 
-    // --- Per-question quiz countdown (smooth via rAF + transform, minimal layout thrash) ---
+    // --- Per-question quiz countdown (smooth via rAF + transform) ---
     function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
 
     function startPerQCountdown(){
@@ -462,9 +472,7 @@
       setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
     }
 
-    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
-
-    // --- Confetti (kept) ---
+    // --- Confetti ---
     let flakes=[]; let raf=null;
     function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
@@ -520,4 +528,3 @@
   </script>
 </body>
 </html>
-
