@@ -177,6 +177,12 @@
 
       <div class="card stats">
         <h2 style="margin-top:0">Stats & History</h2>
+
+        <!-- Encouragement sparkline -->
+        
+        <canvas id="spark" style="width:100%; height:80px; display:block"></canvas>
+        <div class="subtitle" id="sparkCaption">Last 0 questions · 0% accuracy</div>
+
         <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
         <table id="statsTable">
           <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
@@ -286,7 +292,6 @@
     }
     toggleModeUI();
 
-    // Keep the little badge in Quiz settings in sync with the input
     function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 
     // --- Stats (localStorage) ---
@@ -306,13 +311,10 @@
     function renderStatsTable(){
       const s = loadStats();
 
-      // Only include facts with at least one miss (seen > correct)
+      // Only include facts with at least one miss (seen > correct) and within allowed domain
       const keysWithMisses = Object.keys(s)
         .filter(k => s[k].seen > s[k].correct)
-        .filter(k => { // show only within allowed domain
-          const [a,b] = k.split('x').map(Number);
-          return ALLOWED.includes(a) && ALLOWED.includes(b);
-        });
+        .filter(k => { const [a,b] = k.split('x').map(Number); return ALLOWED.includes(a) && ALLOWED.includes(b); });
 
       const rows = keysWithMisses
         .sort((k1,k2)=>{
@@ -331,8 +333,89 @@
     renderStatsTable();
 
     resetStatsBtn.onclick = ()=>{
-      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); }
+      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); drawSpark(); }
     }
+
+    // --- Encouragement Sparkline (rolling accuracy over session) ---
+    const ACC_HISTORY_MAX = 60; // keep last N points
+    let accHistory = [];
+
+    function updateEncouragement() {
+      const acc = currentQ ? correct / currentQ : 0; // session accuracy
+      accHistory.push(acc);
+      if (accHistory.length > ACC_HISTORY_MAX) accHistory.shift();
+      drawSpark();
+    }
+
+    function drawSpark() {
+      const canvas = document.getElementById('spark');
+      const cap = document.getElementById('sparkCaption');
+      if (!canvas) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const cssW = Math.max(300, Math.round(rect.width || 300));
+      const cssH = Math.max(60, Math.round(rect.height || 80));
+      canvas.width  = cssW * dpr;
+      canvas.height = cssH * dpr;
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = canvas.width / dpr, h = canvas.height / dpr;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // baseline grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      [0.25, 0.5, 0.75, 1].forEach(level => {
+        const y = h - (level * (h - 10)) - 5;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      });
+
+      if (accHistory.length < 2){
+        if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round((currentQ? (correct/currentQ):0)*100)}% accuracy`;
+        return;
+      }
+
+      // line path
+      const step = (w - 2) / (accHistory.length - 1);
+      ctx.beginPath();
+      accHistory.forEach((v, i) => {
+        const x = 1 + i * step;
+        const y = h - (v * (h - 10)) - 5;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(56,189,248,1)'; // sky-400
+      ctx.stroke();
+
+      // gradient fill under line (subtle)
+      const lastX = 1 + (accHistory.length - 1) * step;
+      const lastY = h - (accHistory[accHistory.length - 1] * (h - 10)) - 5;
+      ctx.lineTo(lastX, h - 2);
+      ctx.lineTo(1, h - 2);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(56,189,248,0.25)');
+      grad.addColorStop(1, 'rgba(56,189,248,0.00)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // last point dot (green if rising, red if falling)
+      const last = accHistory[accHistory.length - 1];
+      const prev = accHistory[accHistory.length - 2];
+      const rising = last >= prev;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = rising ? '#10b981' : '#ef4444'; // ok / err
+      ctx.fill();
+
+      // caption
+      if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round(last * 100)}% accuracy ${rising ? '↗' : '↘'}`;
+    }
+
+    window.addEventListener('resize', drawSpark);
 
     // --- Quiz generation (2–9 only) ---
     function buildPool(){
@@ -380,6 +463,10 @@
       resultBadge.style.borderColor='rgba(255,255,255,.15)';
       setTimerBadge(0);
       progress();
+
+      // reset encouragement spark
+      accHistory = [];
+      drawSpark();
 
       stopSessionTimer();
       timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
@@ -445,6 +532,7 @@
         wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
       }
       progress();
+      updateEncouragement();
       if (mode==='practice'){
         next();
         if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
