@@ -233,9 +233,7 @@
     let perQRAF = null;   // requestAnimationFrame id
     let lastWholeSec = Infinity;
 
-    const FACT_KEY = 'timesTableStats_v1';
-
-    // --- Build factors grid (1..12) ---
+    const FACT_KEY = 'timesTableStats_v1';$1// --- Build factors grid (1..12) ---
     for (let i=1;i<=12;i++){
       const pill = document.createElement('div');
       pill.className = 'pill';
@@ -313,37 +311,37 @@
       if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); }
     }
 
-    // --- Quiz generation ---
-    function buildPool(){
+    // --- Deck/facts helpers ---
+    function buildFacts(){
       const sel = selected.size ? Array.from(selected) : Array.from({length:12},(_,i)=>i+1);
-      const pool = [];
-      for (const a of sel){
-        for (let b=0;b<=12;b++){
-          pool.push({a,b,answer:a*b});
-        }
-      }
-      // shuffle
-      for (let i=pool.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [pool[i], pool[j]]=[pool[j], pool[i]] }
-      return pool;
+      const facts = [];
+      for (const a of sel){ for (let b=0;b<=12;b++){ facts.push({a,b,answer:a*b, key:`${a}x${b}`}); } }
+      return facts;
+    }
+    function shuffle(arr){ for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]] } return arr; }
+
+    // practice state (no repeats until cycle ends; then review wrongs)
+    let facts = [];
+    let cycleFacts = [];
+    let cycleIdx = 0;
+    let cycle = 'full'; // 'full' then 'review'
+    const wrongSet = new Set();
+
+    // quiz deck (can span multiple cycles if needed)
+    let quizDeck = [];
+    function ensureQuizDeck(minLength){
+      while (quizDeck.length < minLength){ quizDeck = quizDeck.concat(shuffle([...facts])); }
     }
 
+    // --- Quiz generation ---
     function start(){
+
       if (!selected.size){ selectAllBtn.click(); }
-      pool = buildPool();
-      mode = document.querySelector('input[name="mode"]:checked').value;
+      facts = buildFacts();
+      // reset per-mode sequences
+      cycleFacts = shuffle([...facts]); cycleIdx = 0; cycle='full'; wrongSet.clear();
+      quizDeck = []; // built on demand
 
-      // counts per mode
-      if (mode==='practice'){
-        const n = parseInt(practiceCountEl.value,10);
-        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
-        submitBtn.disabled = false;
-      } else { // quiz
-        const n = parseInt(quizCountEl.value,10);
-        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
-        submitBtn.disabled = true; // no manual submit in quiz
-      }
-
-      // reset session state
       currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
       answerEl.disabled=false; nextBtn.disabled=false;
       playAgainBtn.classList.add('hidden');
@@ -374,11 +372,32 @@
     function next(){
       if (!running) return;
       if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
-      if (pool.length===0) pool = buildPool();
-      current = pool[Math.floor(Math.random()*pool.length)];
+
+      if (mode==='practice'){
+        // end of current cycle?
+        if (cycleIdx >= cycleFacts.length){
+          if (cycle==='full' && wrongSet.size){
+            // review round of only wrong items
+            cycleFacts = shuffle(Array.from(wrongSet).map(k=>{ const [a,b]=k.split('x').map(Number); return {a,b,answer:a*b,key:k}; }));
+            wrongSet.clear();
+            cycle='review';
+            cycleIdx = 0;
+          } else {
+            // new full cycle
+            cycleFacts = shuffle([...facts]);
+            cycleIdx = 0;
+            cycle='full';
+          }
+        }
+        current = cycleFacts[cycleIdx++];
+      } else { // quiz
+        ensureQuizDeck(currentQ + 1); // make sure we have at least one available
+        current = quizDeck.shift();
+      }
+
       equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
       qtimerEl = document.getElementById('qtimer');
-      qtimerEl.style.transform = 'scaleX(0)';
+      if (qtimerEl) qtimerEl.style.transform = 'scaleX(0)';
       answerEl.value='';
       currentQ++;
       progress();
@@ -404,6 +423,7 @@
 
     function gradeAndAdvance(ok, auto){
       bumpStats(current.a, current.b, ok);
+      if (!ok && cycle==='full'){ wrongSet.add(current.key); }
       if (ok){
         correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
         tinyBurst();
