@@ -18,14 +18,14 @@
       --heart:#fb7185;     /* rose-400 */
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{min-height:100%}
     body{
       margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
       color:var(--text);
-      display:flex; align-items:center; justify-content:center; padding:24px; overflow-x:hidden;
+      padding:24px; overflow-x:hidden;
     }
-    .app{width:100%; max-width:1000px; position:relative}
+    .app{width:100%; max-width:1000px; position:relative; margin:0 auto}
     .row{display:flex; gap:16px; flex-wrap:wrap}
     .card{
       background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
@@ -71,13 +71,17 @@
     .stats small{color:#9ca3af}
     table{width:100%; border-collapse:collapse; font-size:14px}
     th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
+    thead th{position:sticky; top:0; background:#0b1222cc; backdrop-filter:saturate(180%) blur(6px)}
+
+    /* Make the right-side stats card scroll independently so the page never gets "stuck" */
+    .stats{max-height:60vh; overflow:auto}
 
     .heart{
       display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
       background: radial-gradient(120% 120% at 30% 20%, #ff9ab0, #fb7185 60%, #be123c 100%);
       box-shadow:0 8px 24px rgba(251,113,133,.35);
     }
-    .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+    .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)); width:22px; height:22px}
 
     /* big faint background heart */
     .bg-heart{position:absolute; right:-40px; top:-30px; width:180px; opacity:.15; transform:rotate(12deg)}
@@ -89,13 +93,17 @@
 </head>
 <body>
   <div class="app">
-    <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185">
-      <path d="M12 21s-6.716-4.323-9.428-7.035C-0.571 11.107.3 7.5 3.257 6.257 5.4 5.334 7.714 6.086 9 7.8 10.286 6.086 12.6 5.334 14.743 6.257c2.957 1.243 3.828 4.85.685 7.708C18.716 16.677 12 21 12 21z"/>
+    <!-- Perfectly-proportioned background heart (Material-style path) -->
+    <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
     </svg>
     <div class="card">
       <h1>
         <span class="heart" aria-label="for my kiddo" title="for my kiddo">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M12 21s-6.716-4.323-9.428-7.035C-0.571 11.107.3 7.5 3.257 6.257 5.4 5.334 7.714 6.086 9 7.8 10.286 6.086 12.6 5.334 14.743 6.257c2.957 1.243 3.828 4.85.685 7.708C18.716 16.677 12 21 12 21z"/></svg>
+          <!-- Perfect heart icon -->
+          <svg viewBox="0 0 24 24" fill="white" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
         </span>
         Times Tables Practice
       </h1>
@@ -303,6 +311,8 @@
       next();
       if (mode==='timed') startTimer(); else stopTimer();
       answerEl.focus();
+      // ensure the quiz card stays in view when starting, even if stats are long
+      document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
 
     function startTimer(){
@@ -353,7 +363,8 @@
         wrong++; streak=0; flashBadge(resultBadge, `Not quite. It was ${current.answer}`, 'err');
       }
       progress();
-      answerEl.focus();
+      // keep focus without yanking scroll: only refocus if it's visible
+      if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
     }
 
     function flashBadge(el, text, type){
