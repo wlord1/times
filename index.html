@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Adelyn's Times Tables Practice</title>
+  <title>Hadelin's Times Tables Practice</title>
   <style>
     :root{
       --bg:#0f172a;        /* slate-900 */
@@ -59,7 +59,7 @@
       background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
       min-height:120px; display:flex; align-items:center; justify-content:center;
     }
-    /* per-question countdown bar (QUIZ): now green -> amber -> red */
+    /* per-question countdown bar (QUIZ): green -> amber -> red */
     .qtimer{
       position:absolute; left:0; top:0; height:4px;
       background:linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
@@ -112,9 +112,9 @@
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </span>
-        Adelyn's Times Tables Practice
+        Hadelin's Times Tables Practice
       </h1>
-      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or 5s auto (Quiz).</div>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or timed auto-grade (Quiz).</div>
 
       <div class="controls row">
         <div class="card" style="flex:2; min-width:280px">
@@ -132,7 +132,7 @@
           <div class="section-title">2) Mode</div>
           <div class="stack">
             <label><input type="radio" name="mode" value="practice" checked> Practice</label>
-            <label><input type="radio" name="mode" value="quiz"> Quiz (5s each)</label>
+            <label><input type="radio" name="mode" value="quiz"> Quiz</label>
           </div>
           <div class="spacer"></div>
           <div class="stack" id="practiceConfig">
@@ -140,7 +140,8 @@
           </div>
           <div class="stack hidden" id="quizConfig">
             <label>Quiz questions: <input id="quizCount" type="number" min="5" max="200" step="5" value="20" style="width:90px"></label>
-            <span class="badge" title="Per-question time">⏱ 5s</span>
+            <label>Seconds per question: <input id="quizSeconds" type="number" min="1" max="10" step="1" value="5" style="width:60px"></label>
+            <span class="badge" id="quizSecBadge" title="Per-question time">⏱ 5s</span>
           </div>
           <div class="spacer"></div>
           <div class="stack">
@@ -216,6 +217,8 @@
 
     const practiceCountEl = document.getElementById('practiceCount');
     const quizCountEl = document.getElementById('quizCount');
+    const quizSecondsEl = document.getElementById('quizSeconds');
+    const quizSecBadge = document.getElementById('quizSecBadge');
 
     const statsTableBody = document.querySelector('#statsTable tbody');
 
@@ -231,8 +234,8 @@
     let pool = []; // deck of remaining questions (no repeats within a lap)
     let current = null;
 
-    // quiz per-question timing
-    const QUIZ_SECONDS = 5;
+    // quiz per-question timing (user-configurable)
+    let quizSeconds = 5; // updated from input when starting quiz
     let perQDeadline = 0; // timestamp (ms)
     let perQRAF = null;   // requestAnimationFrame id
     let lastWholeSec = Infinity;
@@ -281,6 +284,15 @@
       quizConfig.classList.toggle('hidden', !isQuiz);
     }
     toggleModeUI();
+
+    // Keep the little badge in Quiz settings in sync with the input
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+    function syncQuizSecBadge(){
+      const v = clamp(parseInt(quizSecondsEl.value,10) || 5, 1, 10);
+      quizSecBadge.textContent = `⏱ ${v}s`;
+    }
+    quizSecondsEl?.addEventListener('input', syncQuizSecBadge);
+    syncQuizSecBadge();
 
     // --- Stats (localStorage) ---
     const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
@@ -355,13 +367,16 @@
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
         submitBtn.disabled = true;   // no manual submit in quiz
         nextBtn.disabled = true;     // no manual next in quiz
+
+        // seconds per question (clamped 1..10)
+        quizSeconds = clamp(parseInt(quizSecondsEl.value,10) || 5, 1, 10);
       }
 
       // reset session state
       currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
       answerEl.disabled=false;
       playAgainBtn.classList.add('hidden');
-      resultBadge.textContent = mode==='quiz' ? 'Quiz: 5s per question' : 'Practice mode';
+      resultBadge.textContent = mode==='quiz' ? `Quiz: ${quizSeconds}s per question` : 'Practice mode';
       resultBadge.style.borderColor='rgba(255,255,255,.15)';
       setTimerBadge(0);
       progress();
@@ -441,7 +456,7 @@
 
     function startPerQCountdown(){
       clearPerQAnim();
-      const duration = QUIZ_SECONDS * 1000;
+      const duration = quizSeconds * 1000;
       const start = performance.now();
       perQDeadline = start + duration;
       lastWholeSec = Infinity;
@@ -449,7 +464,7 @@
       function tick(now){
         const remainingMs = Math.max(0, perQDeadline - now);
         const remainingS = Math.ceil(remainingMs/1000);
-        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = remainingS; }
+        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = constClamp(remainingS); }
         const pct = 1 - (remainingMs / duration);
         if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
         if (remainingMs <= 0){
@@ -462,6 +477,8 @@
       perQRAF = requestAnimationFrame(tick);
     }
 
+    // helper for non-negative seconds display
+    function constClamp(n){ return Math.max(0, n); }
     function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
 
     function autoGradeQuiz(){
