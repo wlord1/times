@@ -1,1 +1,470 @@
-t
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Times Tables Practice</title>
+  <style>
+    :root{
+      --bg:#0f172a;        /* slate-900 */
+      --card:#111827;      /* gray-900 */
+      --muted:#94a3b8;     /* slate-400 */
+      --text:#e5e7eb;      /* gray-200 */
+      --accent:#22c55e;    /* green-500 */
+      --accent-2:#38bdf8;  /* sky-400 */
+      --warn:#f59e0b;      /* amber-500 */
+      --err:#ef4444;       /* red-500 */
+      --ok:#10b981;        /* emerald-500 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
+      color:var(--text);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{width:100%; max-width:1000px}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      border-radius:18px; padding:20px;
+    }
+    h1{font-size:28px; margin:0 0 8px}
+    .subtitle{color:var(--muted); margin-bottom:12px}
+    .controls .section-title{font-weight:700; font-size:14px; color:#cbd5e1; margin:8px 0}
+    .pill{cursor:pointer; user-select:none; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); transition: all .15s ease; font-weight:600}
+    .pill:hover{transform:translateY(-1px);}
+    .pill.active{background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.1)); border-color:rgba(56,189,248,.7)}
+    button{cursor:pointer; border:none; border-radius:14px; padding:12px 16px; font-weight:700; letter-spacing:.2px}
+    .btn{background:linear-gradient(180deg, #22c55e, #16a34a); color:white; box-shadow:0 6px 18px rgba(34,197,94,.35)}
+    .btn.secondary{background:linear-gradient(180deg, #38bdf8, #0ea5e9); box-shadow:0 6px 18px rgba(14,165,233,.35)}
+    .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.15); color:#e2e8f0}
+    .btn.warning{background:linear-gradient(180deg, #f59e0b, #d97706)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .grid{display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px}
+    .stack{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .spacer{height:10px}
+
+    .quiz{
+      display:grid; grid-template-columns: 1.1fr .9fr; gap:16px;
+    }
+    @media (max-width: 850px){ .quiz{grid-template-columns:1fr} }
+
+    .equation{
+      font-size: clamp(32px, 7vw, 60px);
+      font-weight:800; letter-spacing:.5px; text-align:center;
+      padding:24px; border-radius:18px; border:1px solid rgba(255,255,255,0.08);
+      background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
+      min-height:120px; display:flex; align-items:center; justify-content:center;
+    }
+    .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
+    .answer-area input{
+      width:140px; max-width:44vw; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.15); font-size:28px; font-weight:800; text-align:center; background:#0b1222; color:var(--text)
+    }
+    .status{display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#cbd5e1}
+    .badge{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); font-weight:700; font-size:12px}
+    .progress{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .progress > div{height:100%; background:linear-gradient(90deg, #22c55e, #38bdf8)}
+
+    .stats small{color:#9ca3af}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
+
+    .kbd{display:inline-block; padding:2px 8px; border-radius:6px; border:1px solid rgba(255,255,255,.2); background:#0b1222; font-weight:700}
+
+    .hidden{display:none !important}
+
+    /* Confetti */
+    .confetti{position:fixed; inset:0; pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>Times Tables Practice</h1>
+      <div class="subtitle">Pick tables, choose a mode, and go! Answers with <span class="kbd">Enter</span>. Toggle Kid-Size text in Settings.</div>
+
+      <div class="controls row">
+        <div class="card" style="flex:2; min-width:280px">
+          <div class="section-title">1) Choose Tables</div>
+          <div class="grid" id="tableGrid"></div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn ghost" id="selectAll">Select All</button>
+            <button class="btn ghost" id="clearAll">Clear</button>
+            <span class="badge" id="selectedCount">0 selected</span>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-width:260px">
+          <div class="section-title">2) Mode</div>
+          <div class="stack">
+            <label><input type="radio" name="mode" value="practice" checked> Practice</label>
+            <label><input type="radio" name="mode" value="timed"> Timed (60s)</label>
+            <label><input type="radio" name="mode" value="fixed"> Fixed # Questions</label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <label>Questions: <input id="questionCount" type="number" min="5" max="50" step="5" value="20" style="width:80px"></label>
+            <label>Up to × <input id="maxMultiplier" type="number" min="5" max="12" value="10" style="width:70px"></label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <label><input type="checkbox" id="focusMisses"> Smart Shuffle (more of the tricky ones)</label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-width:260px">
+          <div class="section-title">3) Settings</div>
+          <div class="stack">
+            <label><input type="checkbox" id="kidSize"> Kid-Size Text</label>
+            <label><input type="checkbox" id="instantNext" checked> Auto-Advance on Correct</label>
+            <label><input type="checkbox" id="sounds" checked> Sounds</label>
+          </div>
+          <div class="spacer"></div>
+          <div class="section-title">Shortcuts</div>
+          <div class="stack" style="font-size:13px; color:#cbd5e1">
+            <span><span class="kbd">Enter</span> submit</span>
+            <span><span class="kbd">N</span> next</span>
+            <span><span class="kbd">R</span> restart</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer" style="height:18px"></div>
+
+    <div class="quiz">
+      <div class="card">
+        <div id="equation" class="equation">Pick tables and press Start</div>
+        <div class="spacer"></div>
+        <div class="answer-area">
+          <input id="answer" type="number" inputmode="numeric" placeholder="?" disabled />
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <button class="btn ghost" id="nextBtn" disabled>Next</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="status">
+          <div class="badge" id="resultBadge">—</div>
+          <div class="badge" id="timerBadge">⏱ 0s</div>
+          <div class="badge" id="progressBadge">0/0</div>
+          <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
+          <div class="badge" id="streakBadge">🔥 0</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card stats">
+        <h2 style="margin-top:0">Stats & History</h2>
+        <div id="statsNote" class="subtitle">We track accuracy per fact locally on this device.</div>
+        <table id="statsTable">
+          <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="confetti" id="confetti"></canvas>
+
+  <audio id="ding"><source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQAA" type="audio/mp3"></audio>
+  <audio id="bloop"><source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQAA" type="audio/mp3"></audio>
+
+  <script>
+    // --- State ---
+    const tableGrid = document.getElementById('tableGrid');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const startBtn = document.getElementById('startBtn');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+    const equationEl = document.getElementById('equation');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    const resultBadge = document.getElementById('resultBadge');
+    const timerBadge = document.getElementById('timerBadge');
+    const progressBadge = document.getElementById('progressBadge');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const streakBadge = document.getElementById('streakBadge');
+    const progressBar = document.getElementById('progressBar');
+
+    const questionCountEl = document.getElementById('questionCount');
+    const maxMultiplierEl = document.getElementById('maxMultiplier');
+    const focusMissesEl = document.getElementById('focusMisses');
+    const kidSizeEl = document.getElementById('kidSize');
+    const instantNextEl = document.getElementById('instantNext');
+    const soundsEl = document.getElementById('sounds');
+
+    const statsTableBody = document.querySelector('#statsTable tbody');
+
+    const ding = document.getElementById('ding');
+    const bloop = document.getElementById('bloop');
+
+    const confettiCanvas = document.getElementById('confetti');
+    const cfx = confettiCanvas.getContext('2d');
+
+    let selected = new Set();
+    let mode = 'practice';
+    let running = false;
+    let timer = 0, timerInt = null;
+    let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
+
+    let pool = []; // [{a,b,answer}]
+    let current = null;
+
+    const FACT_KEY = 'timesTableStats_v1';
+
+    // --- Build factors grid ---
+    for (let i=1;i<=10;i++){
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = i === 10 ? '×10' : `×${i}`;
+      pill.dataset.val = i;
+      pill.addEventListener('click',()=>{
+        if (selected.has(i)) selected.delete(i); else selected.add(i);
+        pill.classList.toggle('active');
+        updateSelectedCount();
+      });
+      tableGrid.appendChild(pill);
+    }
+
+    function updateSelectedCount(){
+      selectedCount.textContent = `${selected.size} selected`;
+    }
+
+    selectAllBtn.onclick = ()=>{
+      selected = new Set(Array.from({length:10},(_,i)=>i+1));
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.add('active'));
+      updateSelectedCount();
+    }
+    clearAllBtn.onclick = ()=>{
+      selected.clear();
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.remove('active'));
+      updateSelectedCount();
+    }
+
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        mode = r.value;
+      })
+    });
+
+    kidSizeEl.addEventListener('change',()=>{
+      document.body.style.fontSize = kidSizeEl.checked ? '18px' : '';
+      equationEl.style.fontSize = kidSizeEl.checked ? '64px' : '';
+    });
+
+    // --- Stats (localStorage) ---
+    const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
+    const saveStats = (s)=> localStorage.setItem(FACT_KEY, JSON.stringify(s));
+
+    function bumpStats(a,b, wasCorrect){
+      const key = `${a}x${b}`;
+      const s = loadStats();
+      if (!s[key]) s[key] = {seen:0, correct:0};
+      s[key].seen += 1;
+      if (wasCorrect) s[key].correct += 1;
+      saveStats(s);
+      renderStatsTable();
+    }
+
+    function renderStatsTable(){
+      const s = loadStats();
+      const rows = Object.keys(s)
+        .sort((k1,k2)=>{
+          const acc1 = s[k1].seen? s[k1].correct/s[k1].seen : 0;
+          const acc2 = s[k2].seen? s[k2].correct/s[k2].seen : 0;
+          return acc1 - acc2; // show hardest at top
+        })
+        .map(k=>{
+          const {seen, correct} = s[k];
+          const acc = seen? Math.round(100*correct/seen):0;
+          return `<tr><td style="text-align:left">${k.replace('x',' × ')}</td><td style="text-align:center">${seen}</td><td style="text-align:center">${correct}</td><td style="text-align:center">${acc}%</td></tr>`;
+        }).join('');
+      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No history yet</td></tr>';
+    }
+    renderStatsTable();
+
+    resetStatsBtn.onclick = ()=>{
+      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); }
+    }
+
+    // --- Quiz generation ---
+    function buildPool(){
+      const maxB = clamp(parseInt(maxMultiplierEl.value)||10, 5, 12);
+      const weighted = [];
+      const s = loadStats();
+
+      const sel = selected.size ? Array.from(selected) : [1,2,3,4,5,6,7,8,9,10];
+      for (const a of sel){
+        for (let b=0;b<=maxB;b++){
+          const key = `${a}x${b}`;
+          const rec = s[key] || {seen:0, correct:0};
+          let weight = 1;
+          if (focusMissesEl.checked){
+            const acc = rec.seen ? rec.correct/rec.seen : 0;
+            weight = 1.2 - 0.9*acc; // lower accuracy -> higher weight
+            weight = Math.max(0.5, weight);
+          }
+          weighted.push({a,b,answer:a*b, weight});
+        }
+      }
+      // expand by weights
+      const pool = [];
+      weighted.forEach(item=>{
+        const copies = Math.round(item.weight*4);
+        for (let i=0;i<copies;i++) pool.push(item);
+      });
+      // shuffle
+      for (let i=pool.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [pool[i], pool[j]]=[pool[j], pool[i]] }
+      return pool;
+    }
+
+    function start(){
+      if (!selected.size){ selectAllBtn.click(); }
+      pool = buildPool();
+      mode = document.querySelector('input[name="mode"]:checked').value;
+      totalQ = mode==='fixed' ? clamp(parseInt(questionCountEl.value)||20, 5, 50) : Infinity;
+      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0;
+      running = true; answerEl.disabled=false; submitBtn.disabled=false; nextBtn.disabled=false;
+      resultBadge.textContent = 'Good luck!'; resultBadge.style.borderColor='rgba(255,255,255,.15)';
+      equationEl.textContent = 'Ready...';
+      progress();
+      next();
+      if (mode==='timed') startTimer(); else stopTimer();
+      answerEl.focus();
+    }
+
+    function startTimer(){
+      stopTimer();
+      timerInt = setInterval(()=>{
+        timer += 1; timerBadge.textContent = `⏱ ${timer}s`;
+        if (mode==='timed' && timer>=60){ finish(); }
+      }, 1000);
+    }
+    function stopTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
+
+    function finish(){
+      running=false; stopTimer(); answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      equationEl.textContent = `Done! Score: ${correct} correct, ${wrong} wrong.`;
+      resultBadge.textContent = 'Session complete';
+      fireConfetti();
+    }
+
+    function next(){
+      if (!running) return;
+      if (mode==='fixed' && currentQ>=totalQ){ return finish(); }
+      // pick
+      if (pool.length===0) pool = buildPool();
+      current = pool[Math.floor(Math.random()*pool.length)];
+      equationEl.textContent = `${current.a} × ${current.b} = ?`;
+      answerEl.value='';
+      currentQ++;
+      progress();
+    }
+
+    function progress(){
+      progressBadge.textContent = `${isFinite(totalQ)? Math.min(currentQ,totalQ):currentQ}/${isFinite(totalQ)? totalQ:'∞'}`;
+      scoreBadge.textContent = `✅ ${correct} ⟂ ❌ ${wrong}`;
+      streakBadge.textContent = `🔥 ${streak}`;
+      const pct = isFinite(totalQ) ? Math.min(100, Math.round(100*currentQ/totalQ)) : 0;
+      progressBar.style.width = pct + '%';
+    }
+
+    function submit(){
+      if (!running || !current) return;
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      bumpStats(current.a, current.b, ok);
+      if (ok){
+        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
+        if (soundsEl.checked) play(ding);
+        tinyBurst();
+        if (instantNextEl.checked) next();
+      } else {
+        wrong++; streak=0; flashBadge(resultBadge, `Not quite. It was ${current.answer}`, 'err');
+        if (soundsEl.checked) play(bloop);
+      }
+      progress();
+      answerEl.focus();
+    }
+
+    function flashBadge(el, text, type){
+      el.textContent = text;
+      const colors = {ok: 'var(--ok)', err: 'var(--err)', warn: 'var(--warn)'};
+      el.style.borderColor = colors[type] || 'rgba(255,255,255,.15)';
+      el.style.boxShadow = `0 0 0 2px ${colors[type]}22`;
+      setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
+    }
+
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+    function play(a){ a.currentTime=0; a.play().catch(()=>{}); }
+
+    // --- Confetti ---
+    let flakes=[]; let raf=null;
+    function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+    function fireConfetti(){
+      spawn(200);
+      animate();
+      setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 1500);
+    }
+    function tinyBurst(){ spawn(40); animate(); setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 600); }
+    function spawn(n){
+      for (let i=0;i<n;i++){
+        flakes.push({
+          x: confettiCanvas.width/2 + (Math.random()-0.5)*120,
+          y: confettiCanvas.height/2 + (Math.random()-0.5)*40,
+          r: 2 + Math.random()*4,
+          vx: (Math.random()-0.5)*6,
+          vy: - (2 + Math.random()*4),
+          a: Math.random()*Math.PI,
+          va: (Math.random()-0.5)*0.2
+        })
+      }
+    }
+    function animate(){
+      cancelAnimationFrame(raf);
+      function step(){
+        cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+        flakes.forEach(f=>{
+          f.vy += 0.08; f.x += f.vx; f.y += f.vy; f.a += f.va;
+          cfx.save(); cfx.translate(f.x, f.y); cfx.rotate(f.a);
+          cfx.fillStyle = `hsl(${(f.x+f.y)%360}, 90%, 60%)`;
+          cfx.fillRect(-f.r, -f.r, 2*f.r, 2*f.r);
+          cfx.restore();
+        });
+        flakes = flakes.filter(f=> f.y < confettiCanvas.height+10);
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    // --- Events ---
+    startBtn.onclick = start;
+    submitBtn.onclick = submit;
+    nextBtn.onclick = next;
+
+    answerEl.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter') submit();
+    });
+    window.addEventListener('keydown', (e)=>{
+      if (e.key==='n' || e.key==='N') next();
+      if (e.key==='r' || e.key==='R') start();
+    });
+  </script>
+</body>
+</html>
