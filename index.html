@@ -1,1 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adelyn's Times Tables Practice</title>
+  <style>
+    :root{
+      --bg:#0f172a;        /* slate-900 */
+      --card:#111827;      /* gray-900 */
+      --muted:#94a3b8;     /* slate-400 */
+      --text:#e5e7eb;      /* gray-200 */
+      --accent:#22c55e;    /* green-500 */
+      --accent-2:#38bdf8;  /* sky-400 */
+      --warn:#f59e0b;      /* amber-500 */
+      --err:#ef4444;       /* red-500 */
+      --ok:#10b981;        /* emerald-500 */
+      --heart:#fb7185;     /* rose-400 */
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
+      color:var(--text);
+      padding:24px; overflow-x:hidden;
+    }
+    .app{width:100%; max-width:1000px; position:relative; margin:0 auto}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      border-radius:18px; padding:20px;
+    }
+    h1{font-size:28px; margin:0 0 8px; display:flex; align-items:center; gap:12px}
+    .subtitle{color:var(--muted); margin-bottom:12px}
+    .controls .section-title{font-weight:700; font-size:14px; color:#cbd5e1; margin:8px 0}
+    .pill{cursor:pointer; user-select:none; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); transition: all .15s ease; font-weight:600}
+    .pill:hover{transform:translateY(-1px);}    
+    .pill.active{background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.1)); border-color:rgba(56,189,248,.7)}
+    button{cursor:pointer; border:none; border-radius:14px; padding:12px 16px; font-weight:700; letter-spacing:.2px}
+    .btn{background:linear-gradient(180deg, #22c55e, #16a34a); color:white; box-shadow:0 6px 18px rgba(34,197,94,.35)}
+    .btn.secondary{background:linear-gradient(180deg, #38bdf8, #0ea5e9); box-shadow:0 6px 18px rgba(14,165,233,.35)}
+    .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.15); color:#e2e8f0}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .grid{display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px}
+    .stack{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .spacer{height:10px}
 
+    .quiz{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px}
+    @media (max-width: 850px){ .quiz{grid-template-columns:1fr} }
+
+    .equation{
+      position:relative;
+      font-size: clamp(32px, 7vw, 60px);
+      font-weight:800; letter-spacing:.5px; text-align:center;
+      padding:24px; border-radius:18px; border:1px solid rgba(255,255,255,0.08);
+      background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
+      min-height:120px; display:flex; align-items:center; justify-content:center;
+    }
+    /* per-question countdown bar (QUIZ): green -> amber -> red */
+    .qtimer{
+      position:absolute; left:0; top:0; height:4px;
+      background:linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      width:100%; transform-origin:left; transform:scaleX(0); will-change:transform
+    }
+
+    .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
+    .answer-area input{
+      width:140px; max-width:44vw; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.15); font-size:28px; font-weight:800; text-align:center; background:#0b1222; color:var(--text)
+    }
+    .status{display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#cbd5e1}
+    .badge{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); font-weight:700; font-size:12px}
+    .progress{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .progress > div{height:100%; background:linear-gradient(90deg, #22c55e, #38bdf8)}
+
+    .stats small{color:#9ca3af}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
+    thead th{position:sticky; top:0; background:#0b1222cc; backdrop-filter:saturate(180%) blur(6px)}
+
+    /* Make the right-side stats card scroll independently so the page never gets "stuck" */
+    .stats{max-height:60vh; overflow:auto}
+
+    .heart{
+      display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
+      background: radial-gradient(120% 120% at 30% 20%, #ff9ab0, #fb7185 60%, #be123c 100%);
+      box-shadow:0 8px 24px rgba(251,113,133,.35);
+    }
+    .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)); width:22px; height:22px}
+
+    /* big faint background heart */
+    .bg-heart{position:absolute; right:-40px; top:-30px; width:180px; opacity:.15; transform:rotate(12deg)}
+
+    .hidden{display:none !important}
+
+    .confetti{position:fixed; inset:0; pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Perfectly-proportioned background heart -->
+    <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+    <div class="card">
+      <h1>
+        <span class="heart" aria-label="for my kiddo" title="for my kiddo">
+          <svg viewBox="0 0 24 24" fill="white" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </span>
+        Adelyn's Times Tables Practice
+      </h1>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or timed auto-grade (Quiz).</div>
+
+      <div class="controls row">
+        <div class="card" style="flex:2; min-width:280px">
+          <div class="section-title">1) Choose Tables (×2–×9)</div>
+          <div class="grid" id="tableGrid"></div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn ghost" id="selectAll">Select All</button>
+            <button class="btn ghost" id="clearAll">Clear</button>
+            <span class="badge" id="selectedCount">0 selected</span>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-width:260px">
+          <div class="section-title">2) Mode</div>
+          <div class="stack">
+            <label><input type="radio" name="mode" value="practice" checked> Practice</label>
+            <label><input type="radio" name="mode" value="quiz"> Quiz</label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack" id="practiceConfig">
+            <label>Practice questions (optional): <input id="practiceCount" type="number" min="5" max="200" step="5" placeholder="∞" style="width:90px"></label>
+          </div>
+          <div class="stack hidden" id="quizConfig">
+            <label>Quiz questions: <input id="quizCount" type="number" min="5" max="200" step="5" value="20" style="width:90px"></label>
+            <label>Seconds per question: <input id="quizSeconds" type="number" min="1" max="10" step="1" value="5" style="width:60px"></label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary hidden" id="playAgainBtn">Play Again</button>
+            <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer" style="height:18px"></div>
+
+    <div class="quiz">
+      <div class="card">
+        <div id="equation" class="equation">Pick tables and press Start<div class="qtimer" id="qtimer"></div></div>
+        <div class="spacer"></div>
+        <div class="answer-area">
+          <input id="answer" type="number" inputmode="numeric" placeholder="?" disabled />
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <button class="btn ghost" id="nextBtn" disabled>Next</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="status">
+          <div class="badge" id="resultBadge">—</div>
+          <div class="badge" id="timerBadge">⏱ 0s</div>
+          <div class="badge" id="progressBadge">0/0</div>
+          <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
+          <div class="badge" id="streakBadge">🔥 
