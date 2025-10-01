@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Times Tables Practice</title>
+  <title>Hadelin's Times Tables Practice</title>
   <style>
     :root{
       --bg:#0f172a;        /* slate-900 */
@@ -59,8 +59,12 @@
       background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
       min-height:120px; display:flex; align-items:center; justify-content:center;
     }
-    /* smooth per-question countdown bar (quiz mode) */
-    .qtimer{position:absolute; left:0; top:0; height:4px; background:linear-gradient(90deg, #ef4444, #f59e0b, #10b981); width:100%; transform-origin:left; transform:scaleX(0); will-change:transform}
+    /* per-question countdown bar (QUIZ): now green -> amber -> red */
+    .qtimer{
+      position:absolute; left:0; top:0; height:4px;
+      background:linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      width:100%; transform-origin:left; transform:scaleX(0); will-change:transform
+    }
 
     .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
     .answer-area input{
@@ -108,7 +112,7 @@
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </span>
-        Adelyn's Times Tables Practice
+        Hadelin's Times Tables Practice
       </h1>
       <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or 5s auto (Quiz).</div>
 
@@ -173,7 +177,7 @@
 
       <div class="card stats">
         <h2 style="margin-top:0">Stats & History</h2>
-        <div id="statsNote" class="subtitle">We track accuracy per fact locally on this device.</div>
+        <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
         <table id="statsTable">
           <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
           <tbody></tbody>
@@ -294,18 +298,23 @@
 
     function renderStatsTable(){
       const s = loadStats();
-      const rows = Object.keys(s)
+
+      // Only include facts with at least one miss (seen > correct)
+      const keysWithMisses = Object.keys(s).filter(k => s[k].seen > s[k].correct);
+
+      const rows = keysWithMisses
         .sort((k1,k2)=>{
-          const acc1 = s[k1].seen? s[k1].correct/s[k1].seen : 0;
-          const acc2 = s[k2].seen? s[k2].correct/s[k2].seen : 0;
-          return acc1 - acc2; // show hardest at top
+          const acc1 = s[k1].seen ? s[k1].correct / s[k1].seen : 0;
+          const acc2 = s[k2].seen ? s[k2].correct / s[k2].seen : 0;
+          return acc1 - acc2; // lowest accuracy at top
         })
         .map(k=>{
           const {seen, correct} = s[k];
-          const acc = seen? Math.round(100*correct/seen):0;
+          const acc = seen ? Math.round(100 * correct / seen) : 0;
           return `<tr><td style="text-align:left">${k.replace('x',' × ')}</td><td style="text-align:center">${seen}</td><td style="text-align:center">${correct}</td><td style="text-align:center">${acc}%</td></tr>`;
         }).join('');
-      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No history yet</td></tr>';
+
+      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No misses yet — nice!</td></tr>';
     }
     renderStatsTable();
 
