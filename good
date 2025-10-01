@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adelyn's Times Tables Practice</title>
+  <style>
+    :root{
+      --bg:#0f172a;        /* slate-900 */
+      --card:#111827;      /* gray-900 */
+      --muted:#94a3b8;     /* slate-400 */
+      --text:#e5e7eb;      /* gray-200 */
+      --accent:#22c55e;    /* green-500 */
+      --accent-2:#38bdf8;  /* sky-400 */
+      --warn:#f59e0b;      /* amber-500 */
+      --err:#ef4444;       /* red-500 */
+      --ok:#10b981;        /* emerald-500 */
+      --heart:#fb7185;     /* rose-400 */
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
+      color:var(--text);
+      padding:24px; overflow-x:hidden;
+    }
+    .app{width:100%; max-width:1000px; position:relative; margin:0 auto}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      border-radius:18px; padding:20px;
+    }
+    h1{font-size:28px; margin:0 0 8px; display:flex; align-items:center; gap:12px}
+    .subtitle{color:var(--muted); margin-bottom:12px}
+    .controls .section-title{font-weight:700; font-size:14px; color:#cbd5e1; margin:8px 0}
+    .pill{cursor:pointer; user-select:none; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); transition: all .15s ease; font-weight:600}
+    .pill:hover{transform:translateY(-1px);}
+    .pill.active{background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.1)); border-color:rgba(56,189,248,.7)}
+    button{cursor:pointer; border:none; border-radius:14px; padding:12px 16px; font-weight:700; letter-spacing:.2px}
+    .btn{background:linear-gradient(180deg, #22c55e, #16a34a); color:white; box-shadow:0 6px 18px rgba(34,197,94,.35)}
+    .btn.secondary{background:linear-gradient(180deg, #38bdf8, #0ea5e9); box-shadow:0 6px 18px rgba(14,165,233,.35)}
+    .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.15); color:#e2e8f0}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .grid{display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px}
+    .stack{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .spacer{height:10px}
+
+    .quiz{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px}
+    @media (max-width: 850px){ .quiz{grid-template-columns:1fr} }
+
+    .equation{
+      position:relative;
+      font-size: clamp(32px, 7vw, 60px);
+      font-weight:800; letter-spacing:.5px; text-align:center;
+      padding:24px; border-radius:18px; border:1px solid rgba(255,255,255,0.08);
+      background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
+      min-height:120px; display:flex; align-items:center; justify-content:center;
+    }
+    /* per-question countdown bar (QUIZ): now green -> amber -> red */
+    .qtimer{
+      position:absolute; left:0; top:0; height:4px;
+      background:linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      width:100%; transform-origin:left; transform:scaleX(0); will-change:transform
+    }
+
+    .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
+    .answer-area input{
+      width:140px; max-width:44vw; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.15); font-size:28px; font-weight:800; text-align:center; background:#0b1222; color:var(--text)
+    }
+    .status{display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#cbd5e1}
+    .badge{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); font-weight:700; font-size:12px}
+    .progress{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .progress > div{height:100%; background:linear-gradient(90deg, #22c55e, #38bdf8)}
+
+    .stats small{color:#9ca3af}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
+    thead th{position:sticky; top:0; background:#0b1222cc; backdrop-filter:saturate(180%) blur(6px)}
+
+    /* Make the right-side stats card scroll independently so the page never gets "stuck" */
+    .stats{max-height:60vh; overflow:auto}
+
+    .heart{
+      display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
+      background: radial-gradient(120% 120% at 30% 20%, #ff9ab0, #fb7185 60%, #be123c 100%);
+      box-shadow:0 8px 24px rgba(251,113,133,.35);
+    }
+    .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)); width:22px; height:22px}
+
+    /* big faint background heart */
+    .bg-heart{position:absolute; right:-40px; top:-30px; width:180px; opacity:.15; transform:rotate(12deg)}
+
+    .hidden{display:none !important}
+
+    .confetti{position:fixed; inset:0; pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Perfectly-proportioned background heart -->
+    <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+    <div class="card">
+      <h1>
+        <span class="heart" aria-label="for my kiddo" title="for my kiddo">
+          <svg viewBox="0 0 24 24" fill="white" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </span>
+        Adelyn's Times Tables Practice
+      </h1>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or 5s auto (Quiz).</div>
+
+      <div class="controls row">
+        <div class="card" style="flex:2; min-width:280px">
+          <div class="section-title">1) Choose Tables (×1–×12)</div>
+          <div class="grid" id="tableGrid"></div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn ghost" id="selectAll">Select All</button>
+            <button class="btn ghost" id="clearAll">Clear</button>
+            <span class="badge" id="selectedCount">0 selected</span>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-width:260px">
+          <div class="section-title">2) Mode</div>
+          <div class="stack">
+            <label><input type="radio" name="mode" value="practice" checked> Practice</label>
+            <label><input type="radio" name="mode" value="quiz"> Quiz (5s each)</label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack" id="practiceConfig">
+            <label>Practice questions (optional): <input id="practiceCount" type="number" min="5" max="200" step="5" placeholder="∞" style="width:90px"></label>
+          </div>
+          <div class="stack hidden" id="quizConfig">
+            <label>Quiz questions: <input id="quizCount" type="number" min="5" max="200" step="5" value="20" style="width:90px"></label>
+            <span class="badge" title="Per-question time">⏱ 5s</span>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary hidden" id="playAgainBtn">Play Again</button>
+            <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer" style="height:18px"></div>
+
+    <div class="quiz">
+      <div class="card">
+        <div id="equation" class="equation">Pick tables and press Start<div class="qtimer" id="qtimer"></div></div>
+        <div class="spacer"></div>
+        <div class="answer-area">
+          <input id="answer" type="number" inputmode="numeric" placeholder="?" disabled />
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <button class="btn ghost" id="nextBtn" disabled>Next</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="status">
+          <div class="badge" id="resultBadge">—</div>
+          <div class="badge" id="timerBadge">⏱ 0s</div>
+          <div class="badge" id="progressBadge">0/0</div>
+          <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
+          <div class="badge" id="streakBadge">🔥 0</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card stats">
+        <h2 style="margin-top:0">Stats & History</h2>
+        <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
+        <table id="statsTable">
+          <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="confetti" id="confetti"></canvas>
+
+  <script>
+    // --- State ---
+    const tableGrid = document.getElementById('tableGrid');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const startBtn = document.getElementById('startBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+    const practiceConfig = document.getElementById('practiceConfig');
+    const quizConfig = document.getElementById('quizConfig');
+
+    const equationEl = document.getElementById('equation');
+    let qtimerEl = document.getElementById('qtimer');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    const resultBadge = document.getElementById('resultBadge');
+    const timerBadge = document.getElementById('timerBadge');
+    const progressBadge = document.getElementById('progressBadge');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const streakBadge = document.getElementById('streakBadge');
+    const progressBar = document.getElementById('progressBar');
+
+    const practiceCountEl = document.getElementById('practiceCount');
+    const quizCountEl = document.getElementById('quizCount');
+
+    const statsTableBody = document.querySelector('#statsTable tbody');
+
+    const confettiCanvas = document.getElementById('confetti');
+    const cfx = confettiCanvas.getContext('2d');
+
+    let selected = new Set();
+    let mode = 'practice';
+    let running = false;
+    let timer = 0, timerInt = null; // session timer (informational)
+    let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
+
+    let pool = []; // deck of remaining questions (no repeats within a lap)
+    let current = null;
+
+    // quiz per-question timing
+    const QUIZ_SECONDS = 5;
+    let perQDeadline = 0; // timestamp (ms)
+    let perQRAF = null;   // requestAnimationFrame id
+    let lastWholeSec = Infinity;
+
+    const FACT_KEY = 'timesTableStats_v1';
+
+    // --- Build factors grid (1..12) ---
+    for (let i=1;i<=12;i++){
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = `×${i}`;
+      pill.dataset.val = i;
+      pill.addEventListener('click',()=>{
+        if (selected.has(i)) selected.delete(i); else selected.add(i);
+        pill.classList.toggle('active');
+        updateSelectedCount();
+      });
+      tableGrid.appendChild(pill);
+    }
+
+    function updateSelectedCount(){
+      selectedCount.textContent = `${selected.size} selected`;
+    }
+
+    selectAllBtn.onclick = ()=>{
+      selected = new Set(Array.from({length:12},(_,i)=>i+1));
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.add('active'));
+      updateSelectedCount();
+    }
+    clearAllBtn.onclick = ()=>{
+      selected.clear();
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.remove('active'));
+      updateSelectedCount();
+    }
+
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        mode = r.value;
+        toggleModeUI();
+      })
+    });
+
+    function toggleModeUI(){
+      const isQuiz = mode === 'quiz';
+      practiceConfig.classList.toggle('hidden', isQuiz);
+      quizConfig.classList.toggle('hidden', !isQuiz);
+    }
+    toggleModeUI();
+
+    // --- Stats (localStorage) ---
+    const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
+    const saveStats = (s)=> localStorage.setItem(FACT_KEY, JSON.stringify(s));
+
+    function bumpStats(a,b, wasCorrect){
+      const key = `${a}x${b}`;
+      const s = loadStats();
+      if (!s[key]) s[key] = {seen:0, correct:0};
+      s[key].seen += 1;
+      if (wasCorrect) s[key].correct += 1;
+      saveStats(s);
+      renderStatsTable();
+    }
+
+    function renderStatsTable(){
+      const s = loadStats();
+
+      // Only include facts with at least one miss (seen > correct)
+      const keysWithMisses = Object.keys(s).filter(k => s[k].seen > s[k].correct);
+
+      const rows = keysWithMisses
+        .sort((k1,k2)=>{
+          const acc1 = s[k1].seen ? s[k1].correct / s[k1].seen : 0;
+          const acc2 = s[k2].seen ? s[k2].correct / s[k2].seen : 0;
+          return acc1 - acc2; // lowest accuracy at top
+        })
+        .map(k=>{
+          const {seen, correct} = s[k];
+          const acc = seen ? Math.round(100 * correct / seen) : 0;
+          return `<tr><td style="text-align:left">${k.replace('x',' × ')}</td><td style="text-align:center">${seen}</td><td style="text-align:center">${correct}</td><td style="text-align:center">${acc}%</td></tr>`;
+        }).join('');
+
+      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No misses yet — nice!</td></tr>';
+    }
+    renderStatsTable();
+
+    resetStatsBtn.onclick = ()=>{
+      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); }
+    }
+
+    // --- Quiz generation ---
+    function buildPool(){
+      const sel = selected.size ? Array.from(selected) : Array.from({length:12},(_,i)=>i+1);
+      const deck = [];
+      for (const a of sel){
+        for (let b=0;b<=12;b++){
+          deck.push({a,b,answer:a*b});
+        }
+      }
+      // shuffle (Fisher–Yates)
+      for (let i=deck.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function start(){
+      if (!selected.size){ selectAllBtn.click(); }
+      pool = buildPool();
+      mode = document.querySelector('input[name="mode"]:checked').value;
+
+      // counts per mode
+      if (mode==='practice'){
+        const n = parseInt(practiceCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
+        submitBtn.disabled = false;
+        nextBtn.disabled = false;
+      } else { // quiz
+        const n = parseInt(quizCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
+        submitBtn.disabled = true;   // no manual submit in quiz
+        nextBtn.disabled = true;     // no manual next in quiz
+      }
+
+      // reset session state
+      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
+      answerEl.disabled=false;
+      playAgainBtn.classList.add('hidden');
+      resultBadge.textContent = mode==='quiz' ? 'Quiz: 5s per question' : 'Practice mode';
+      resultBadge.style.borderColor='rgba(255,255,255,.15)';
+      setTimerBadge(0);
+      progress();
+
+      stopSessionTimer();
+      timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
+
+      next(); // draw first question
+      answerEl.focus();
+      document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
+    }
+
+    function stopSessionTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
+
+    function finish(){
+      running=false; stopSessionTimer(); clearPerQAnim();
+      answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      equationEl.innerHTML = `Done! Score: ${correct} correct, ${wrong} wrong.`;
+      playAgainBtn.classList.remove('hidden');
+      setTimerBadge(0);
+      fireConfetti();
+    }
+
+    // --- No-repeat draw (until deck is empty), then reshuffle for next lap ---
+    function next(){
+      if (!running) return;
+      if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
+      if (pool.length === 0) pool = buildPool();
+
+      // draw without replacement
+      const j = Math.floor(Math.random() * pool.length);
+      current = pool.splice(j, 1)[0];
+
+      equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
+      qtimerEl = document.getElementById('qtimer');
+      qtimerEl.style.transform = 'scaleX(0)';
+      answerEl.value='';
+      currentQ++;
+      progress();
+
+      if (mode==='quiz') startPerQCountdown(); else clearPerQAnim();
+    }
+
+    function progress(){
+      progressBadge.textContent = `${isFinite(totalQ)? Math.min(currentQ,totalQ):currentQ}/${isFinite(totalQ)? totalQ:'∞'}`;
+      scoreBadge.textContent = `✅ ${correct} ⟂ ❌ ${wrong}`;
+      streakBadge.textContent = `🔥 ${streak}`;
+      const pct = isFinite(totalQ) ? Math.min(100, Math.round(100*currentQ/totalQ)) : 0;
+      progressBar.style.width = pct + '%';
+    }
+
+    function submit(){
+      if (!running || !current) return;
+      if (mode==='quiz') return; // disabled in quiz
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ false);
+    }
+
+    function gradeAndAdvance(ok, auto){
+      bumpStats(current.a, current.b, ok);
+      if (ok){
+        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
+        tinyBurst();
+      } else {
+        wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
+      }
+      progress();
+      if (mode==='practice'){
+        next();
+        if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
+      }
+    }
+
+    // --- Per-question quiz countdown (smooth via rAF + transform) ---
+    function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
+
+    function startPerQCountdown(){
+      clearPerQAnim();
+      const duration = QUIZ_SECONDS * 1000;
+      const start = performance.now();
+      perQDeadline = start + duration;
+      lastWholeSec = Infinity;
+
+      function tick(now){
+        const remainingMs = Math.max(0, perQDeadline - now);
+        const remainingS = Math.ceil(remainingMs/1000);
+        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = remainingS; }
+        const pct = 1 - (remainingMs / duration);
+        if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
+        if (remainingMs <= 0){
+          clearPerQAnim();
+          autoGradeQuiz();
+          return;
+        }
+        perQRAF = requestAnimationFrame(tick);
+      }
+      perQRAF = requestAnimationFrame(tick);
+    }
+
+    function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
+
+    function autoGradeQuiz(){
+      if (!running || !current) return;
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ true);
+      if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
+      else { next(); answerEl.focus(); }
+    }
+
+    function flashBadge(el, text, type){
+      el.textContent = text;
+      const colors = {ok: 'var(--ok)', err: 'var(--err)', warn: 'var(--warn)'};
+      el.style.borderColor = colors[type] || 'rgba(255,255,255,.15)';
+      el.style.boxShadow = `0 0 0 2px ${colors[type]}22`;
+      setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
+    }
+
+    // --- Confetti ---
+    let flakes=[]; let raf=null;
+    function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+    function fireConfetti(){
+      spawn(200);
+      animate();
+      setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 1500);
+    }
+    function tinyBurst(){ spawn(40); animate(); setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 600); }
+    function spawn(n){
+      for (let i=0;i<n;i++){
+        flakes.push({
+          x: confettiCanvas.width/2 + (Math.random()-0.5)*120,
+          y: confettiCanvas.height/2 + (Math.random()-0.5)*40,
+          r: 2 + Math.random()*4,
+          vx: (Math.random()-0.5)*6,
+          vy: - (2 + Math.random()*4),
+          a: Math.random()*Math.PI,
+          va: (Math.random()-0.5)*0.2
+        })
+      }
+    }
+    function animate(){
+      cancelAnimationFrame(raf);
+      function step(){
+        cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+        flakes.forEach(f=>{
+          f.vy += 0.08; f.x += f.vx; f.y += f.vy; f.a += f.va;
+          cfx.save(); cfx.translate(f.x, f.y); cfx.rotate(f.a);
+          cfx.fillStyle = `hsl(${(f.x+f.y)%360}, 90%, 60%)`;
+          cfx.fillRect(-f.r, -f.r, 2*f.r, 2*f.r);
+          cfx.restore();
+        });
+        flakes = flakes.filter(f=> f.y < confettiCanvas.height+10);
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    // --- Events ---
+    startBtn.onclick = start;
+    playAgainBtn.onclick = start;
+    submitBtn.onclick = submit;
+    nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
+
+    // Keyboard behavior: Enter only in Practice mode
+    answerEl.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter'){
+        if (mode==='practice') submit();
+        else e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
