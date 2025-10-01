@@ -169,4 +169,388 @@
           <div class="badge" id="timerBadge">⏱ 0s</div>
           <div class="badge" id="progressBadge">0/0</div>
           <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
-          <div class="badge" id="streakBadge">🔥 
+          <div class="badge" id="streakBadge">🔥 0</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card stats">
+        <h2 style="margin-top:0">Stats & History</h2>
+        <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
+        <table id="statsTable">
+          <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="confetti" id="confetti"></canvas>
+
+  <script>
+    // === Config: allowed factors are strictly 2–9 ===
+    const ALLOWED = [2,3,4,5,6,7,8,9];
+
+    // --- State ---
+    const tableGrid = document.getElementById('tableGrid');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const startBtn = document.getElementById('startBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+    const practiceConfig = document.getElementById('practiceConfig');
+    const quizConfig = document.getElementById('quizConfig');
+
+    const equationEl = document.getElementById('equation');
+    let qtimerEl = document.getElementById('qtimer');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    const resultBadge = document.getElementById('resultBadge');
+    const timerBadge = document.getElementById('timerBadge');
+    const progressBadge = document.getElementById('progressBadge');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const streakBadge = document.getElementById('streakBadge');
+    const progressBar = document.getElementById('progressBar');
+
+    const practiceCountEl = document.getElementById('practiceCount');
+    const quizCountEl = document.getElementById('quizCount');
+    const quizSecondsEl = document.getElementById('quizSeconds');
+
+    const statsTableBody = document.querySelector('#statsTable tbody');
+
+    const confettiCanvas = document.getElementById('confetti');
+    const cfx = confettiCanvas.getContext('2d');
+
+    let selected = new Set();
+    let mode = 'practice';
+    let running = false;
+    let timer = 0, timerInt = null; // session timer (informational)
+    let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
+
+    let pool = []; // deck of remaining questions (no repeats within a lap)
+    let current = null;
+
+    // quiz per-question timing (user-configurable)
+    let quizSeconds = 5; // updated from input when starting quiz
+    let perQDeadline = 0; // timestamp (ms)
+    let perQRAF = null;   // requestAnimationFrame id
+    let lastWholeSec = Infinity;
+
+    const FACT_KEY = 'timesTableStats_v1';
+
+    // --- Build factors grid (2..9) ---
+    for (const i of ALLOWED){
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = `×${i}`;
+      pill.dataset.val = i;
+      pill.addEventListener('click',()=>{
+        if (selected.has(i)) selected.delete(i); else selected.add(i);
+        pill.classList.toggle('active');
+        updateSelectedCount();
+      });
+      tableGrid.appendChild(pill);
+    }
+
+    function updateSelectedCount(){
+      selectedCount.textContent = `${selected.size} selected`;
+    }
+
+    selectAllBtn.onclick = ()=>{
+      selected = new Set(ALLOWED);
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.add('active'));
+      updateSelectedCount();
+    }
+    clearAllBtn.onclick = ()=>{
+      selected.clear();
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.remove('active'));
+      updateSelectedCount();
+    }
+
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        mode = r.value;
+        toggleModeUI();
+      })
+    });
+
+    function toggleModeUI(){
+      const isQuiz = mode === 'quiz';
+      practiceConfig.classList.toggle('hidden', isQuiz);
+      quizConfig.classList.toggle('hidden', !isQuiz);
+    }
+    toggleModeUI();
+
+    // Keep the little badge in Quiz settings in sync with the input
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+    // --- Stats (localStorage) ---
+    const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
+    const saveStats = (s)=> localStorage.setItem(FACT_KEY, JSON.stringify(s));
+
+    function bumpStats(a,b, wasCorrect){
+      const key = `${a}x${b}`;
+      const s = loadStats();
+      if (!s[key]) s[key] = {seen:0, correct:0};
+      s[key].seen += 1;
+      if (wasCorrect) s[key].correct += 1;
+      saveStats(s);
+      renderStatsTable();
+    }
+
+    function renderStatsTable(){
+      const s = loadStats();
+
+      // Only include facts with at least one miss (seen > correct)
+      const keysWithMisses = Object.keys(s)
+        .filter(k => s[k].seen > s[k].correct)
+        .filter(k => { // show only within allowed domain
+          const [a,b] = k.split('x').map(Number);
+          return ALLOWED.includes(a) && ALLOWED.includes(b);
+        });
+
+      const rows = keysWithMisses
+        .sort((k1,k2)=>{
+          const acc1 = s[k1].seen ? s[k1].correct / s[k1].seen : 0;
+          const acc2 = s[k2].seen ? s[k2].correct / s[k2].seen : 0;
+          return acc1 - acc2; // lowest accuracy at top
+        })
+        .map(k=>{
+          const {seen, correct} = s[k];
+          const acc = seen ? Math.round(100 * correct / seen) : 0;
+          return `<tr><td style="text-align:left">${k.replace('x',' × ')}</td><td style="text-align:center">${seen}</td><td style="text-align:center">${correct}</td><td style="text-align:center">${acc}%</td></tr>`;
+        }).join('');
+
+      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No misses yet — nice!</td></tr>';
+    }
+    renderStatsTable();
+
+    resetStatsBtn.onclick = ()=>{
+      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); }
+    }
+
+    // --- Quiz generation (2–9 only) ---
+    function buildPool(){
+      const sel = selected.size ? Array.from(selected) : ALLOWED.slice();
+      const deck = [];
+      for (const a of sel){
+        for (const b of ALLOWED){
+          deck.push({a,b,answer:a*b});
+        }
+      }
+      // shuffle (Fisher–Yates)
+      for (let i=deck.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function start(){
+      if (!selected.size){ selectAllBtn.click(); }
+      pool = buildPool();
+      mode = document.querySelector('input[name="mode"]:checked').value;
+
+      // counts per mode
+      if (mode==='practice'){
+        const n = parseInt(practiceCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
+        submitBtn.disabled = false;
+        nextBtn.disabled = false;
+      } else { // quiz
+        const n = parseInt(quizCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
+        submitBtn.disabled = true;   // no manual submit in quiz
+        nextBtn.disabled = true;     // no manual next in quiz
+
+        // seconds per question (clamped 1..10)
+        quizSeconds = clamp(parseInt(quizSecondsEl.value,10) || 5, 1, 10);
+      }
+
+      // reset session state
+      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
+      answerEl.disabled=false;
+      playAgainBtn.classList.add('hidden');
+      resultBadge.textContent = mode==='quiz' ? `Quiz: ${quizSeconds}s per question` : 'Practice mode';
+      resultBadge.style.borderColor='rgba(255,255,255,.15)';
+      setTimerBadge(0);
+      progress();
+
+      stopSessionTimer();
+      timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
+
+      next(); // draw first question
+      answerEl.focus();
+      document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
+    }
+
+    function stopSessionTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
+
+    function finish(){
+      running=false; stopSessionTimer(); clearPerQAnim();
+      answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      equationEl.innerHTML = `Done! Score: ${correct} correct, ${wrong} wrong.`;
+      playAgainBtn.classList.remove('hidden');
+      setTimerBadge(0);
+      fireConfetti();
+    }
+
+    // --- No-repeat draw (until deck is empty), then reshuffle for next lap ---
+    function next(){
+      if (!running) return;
+      if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
+      if (pool.length === 0) pool = buildPool();
+
+      // draw without replacement
+      const j = Math.floor(Math.random() * pool.length);
+      current = pool.splice(j, 1)[0];
+
+      equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
+      qtimerEl = document.getElementById('qtimer');
+      qtimerEl.style.transform = 'scaleX(0)';
+      answerEl.value='';
+      currentQ++;
+      progress();
+
+      if (mode==='quiz') startPerQCountdown(); else clearPerQAnim();
+    }
+
+    function progress(){
+      progressBadge.textContent = `${isFinite(totalQ)? Math.min(currentQ,totalQ):currentQ}/${isFinite(totalQ)? totalQ:'∞'}`;
+      scoreBadge.textContent = `✅ ${correct} ⟂ ❌ ${wrong}`;
+      streakBadge.textContent = `🔥 ${streak}`;
+      const pct = isFinite(totalQ) ? Math.min(100, Math.round(100*currentQ/totalQ)) : 0;
+      progressBar.style.width = pct + '%';
+    }
+
+    function submit(){
+      if (!running || !current) return;
+      if (mode==='quiz') return; // disabled in quiz
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ false);
+    }
+
+    function gradeAndAdvance(ok, auto){
+      bumpStats(current.a, current.b, ok);
+      if (ok){
+        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
+        tinyBurst();
+      } else {
+        wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
+      }
+      progress();
+      if (mode==='practice'){
+        next();
+        if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
+      }
+    }
+
+    // --- Per-question quiz countdown (smooth via rAF + transform) ---
+    function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
+
+    function startPerQCountdown(){
+      clearPerQAnim();
+      const duration = quizSeconds * 1000;
+      const start = performance.now();
+      perQDeadline = start + duration;
+      lastWholeSec = Infinity;
+
+      function tick(now){
+        const remainingMs = Math.max(0, perQDeadline - now);
+        const remainingS = Math.ceil(remainingMs/1000);
+        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = constClamp(remainingS); }
+        const pct = 1 - (remainingMs / duration);
+        if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
+        if (remainingMs <= 0){
+          clearPerQAnim();
+          autoGradeQuiz();
+          return;
+        }
+        perQRAF = requestAnimationFrame(tick);
+      }
+      perQRAF = requestAnimationFrame(tick);
+    }
+
+    // helper for non-negative seconds display
+    function constClamp(n){ return Math.max(0, n); }
+    function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
+
+    function autoGradeQuiz(){
+      if (!running || !current) return;
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ true);
+      if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
+      else { next(); answerEl.focus(); }
+    }
+
+    function flashBadge(el, text, type){
+      el.textContent = text;
+      const colors = {ok: 'var(--ok)', err: 'var(--err)', warn: 'var(--warn)'};
+      el.style.borderColor = colors[type] || 'rgba(255,255,255,.15)';
+      el.style.boxShadow = `0 0 0 2px ${colors[type]}22`;
+      setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
+    }
+
+    // --- Confetti ---
+    let flakes=[]; let raf=null;
+    function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+    function fireConfetti(){
+      spawn(200);
+      animate();
+      setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 1500);
+    }
+    function tinyBurst(){ spawn(40); animate(); setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 600); }
+    function spawn(n){
+      for (let i=0;i<n;i++){
+        flakes.push({
+          x: confettiCanvas.width/2 + (Math.random()-0.5)*120,
+          y: confettiCanvas.height/2 + (Math.random()-0.5)*40,
+          r: 2 + Math.random()*4,
+          vx: (Math.random()-0.5)*6,
+          vy: - (2 + Math.random()*4),
+          a: Math.random()*Math.PI,
+          va: (Math.random()-0.5)*0.2
+        })
+      }
+    }
+    function animate(){
+      cancelAnimationFrame(raf);
+      function step(){
+        cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+        flakes.forEach(f=>{
+          f.vy += 0.08; f.x += f.vx; f.y += f.vy; f.a += f.va;
+          cfx.save(); cfx.translate(f.x, f.y); cfx.rotate(f.a);
+          cfx.fillStyle = `hsl(${(f.x+f.y)%360}, 90%, 60%)`;
+          cfx.fillRect(-f.r, -f.r, 2*f.r, 2*f.r);
+          cfx.restore();
+        });
+        flakes = flakes.filter(f=> f.y < confettiCanvas.height+10);
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    // --- Events ---
+    startBtn.onclick = start;
+    playAgainBtn.onclick = start;
+    submitBtn.onclick = submit;
+    nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
+
+    // Keyboard behavior: Enter only in Practice mode
+    answerEl.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter'){
+        if (mode==='practice') submit();
+        else e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
