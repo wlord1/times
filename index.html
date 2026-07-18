@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adelyn's Times Tables Practice</title>
-
   <style>
     :root{
       --bg:#0f172a;
@@ -19,37 +18,14 @@
       --heart:#fb7185;
     }
 
-    *{
-      box-sizing:border-box;
-    }
+    *{box-sizing:border-box}
 
-    html,
-    body{
-      min-height:100%;
-    }
+    html,body{min-height:100%}
 
     body{
       margin:0;
-      font-family:
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        Segoe UI,
-        Roboto,
-        Helvetica,
-        Arial,
-        "Apple Color Emoji",
-        "Segoe UI Emoji";
-
-      background:
-        radial-gradient(
-          1200px 800px at 20% -10%,
-          #1e293b 0%,
-          #0b1222 60%,
-          #080e1a 100%
-        ),
-        var(--bg);
-
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background:radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
       color:var(--text);
       padding:24px;
       overflow-x:hidden;
@@ -69,13 +45,7 @@
     }
 
     .card{
-      background:
-        linear-gradient(
-          180deg,
-          rgba(255,255,255,0.04),
-          rgba(255,255,255,0.02)
-        );
-
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
       border:1px solid rgba(255,255,255,0.08);
       box-shadow:0 10px 30px rgba(0,0,0,0.35);
       border-radius:18px;
@@ -117,13 +87,7 @@
     }
 
     .pill.active{
-      background:
-        linear-gradient(
-          180deg,
-          rgba(56,189,248,.25),
-          rgba(56,189,248,.1)
-        );
-
+      background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.1));
       border-color:rgba(56,189,248,.7);
     }
 
@@ -196,14 +160,7 @@
       padding:24px;
       border-radius:18px;
       border:1px solid rgba(255,255,255,0.08);
-
-      background:
-        radial-gradient(
-          600px 300px at 30% -30%,
-          rgba(56,189,248,.15),
-          rgba(56,189,248,.05)
-        );
-
+      background:radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
       min-height:120px;
       display:flex;
       align-items:center;
@@ -280,8 +237,7 @@
       font-size:14px;
     }
 
-    th,
-    td{
+    th,td{
       padding:10px;
       border-bottom:1px solid rgba(255,255,255,.08);
     }
@@ -305,15 +261,7 @@
       width:38px;
       height:38px;
       border-radius:50%;
-
-      background:
-        radial-gradient(
-          120% 120% at 30% 20%,
-          #ff9ab0,
-          #fb7185 60%,
-          #be123c 100%
-        );
-
+      background:radial-gradient(120% 120% at 30% 20%, #ff9ab0, #fb7185 60%, #be123c 100%);
       box-shadow:0 8px 24px rgba(251,113,133,.35);
     }
 
@@ -346,7 +294,6 @@
 
 <body>
   <div class="app">
-
     <svg
       class="bg-heart"
       viewBox="0 0 24 24"
@@ -360,11 +307,7 @@
 
     <div class="card">
       <h1>
-        <span
-          class="heart"
-          aria-label="for my kiddo"
-          title="for my kiddo"
-        >
+        <span class="heart" aria-label="for my kiddo" title="for my kiddo">
           <svg
             viewBox="0 0 24 24"
             fill="white"
@@ -379,57 +322,35 @@
       </h1>
 
       <div class="subtitle">
-        Pick tables, choose a mode, and go! Press Enter or Submit to answer.
-        Quiz mode will automatically grade when time runs out.
+        Pick tables, choose a mode, and go! Press Enter or Submit to answer. Quiz mode automatically grades when time runs out.
       </div>
 
       <div class="controls row">
         <div class="card" style="flex:2; min-width:280px">
-          <div class="section-title">
-            1) Choose Tables (×2–×9)
-          </div>
+          <div class="section-title">1) Choose Tables (×2–×9)</div>
 
           <div class="grid" id="tableGrid"></div>
 
           <div class="spacer"></div>
 
           <div class="stack">
-            <button class="btn ghost" id="selectAll">
-              Select All
-            </button>
-
-            <button class="btn ghost" id="clearAll">
-              Clear
-            </button>
-
-            <span class="badge" id="selectedCount">
-              0 selected
-            </span>
+            <button class="btn ghost" id="selectAll">Select All</button>
+            <button class="btn ghost" id="clearAll">Clear</button>
+            <span class="badge" id="selectedCount">0 selected</span>
           </div>
         </div>
 
         <div class="card" style="flex:1; min-width:260px">
-          <div class="section-title">
-            2) Mode
-          </div>
+          <div class="section-title">2) Mode</div>
 
           <div class="stack">
             <label>
-              <input
-                type="radio"
-                name="mode"
-                value="practice"
-                checked
-              >
+              <input type="radio" name="mode" value="practice" checked>
               Practice
             </label>
 
             <label>
-              <input
-                type="radio"
-                name="mode"
-                value="quiz"
-              >
+              <input type="radio" name="mode" value="quiz">
               Quiz
             </label>
           </div>
@@ -439,7 +360,6 @@
           <div class="stack" id="practiceConfig">
             <label>
               Practice questions (optional):
-
               <input
                 id="practiceCount"
                 type="number"
@@ -455,7 +375,6 @@
           <div class="stack hidden" id="quizConfig">
             <label>
               Quiz questions:
-
               <input
                 id="quizCount"
                 type="number"
@@ -469,7 +388,6 @@
 
             <label>
               Seconds per question:
-
               <input
                 id="quizSeconds"
                 type="number"
@@ -485,23 +403,9 @@
           <div class="spacer"></div>
 
           <div class="stack">
-            <button class="btn" id="startBtn">
-              Start
-            </button>
-
-            <button
-              class="btn secondary hidden"
-              id="playAgainBtn"
-            >
-              Play Again
-            </button>
-
-            <button
-              class="btn secondary"
-              id="resetStatsBtn"
-            >
-              Reset Stats
-            </button>
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary hidden" id="playAgainBtn">Play Again</button>
+            <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
           </div>
         </div>
       </div>
@@ -511,10 +415,8 @@
 
     <div class="quiz">
       <div class="card">
-
         <div id="equation" class="equation">
           Pick tables and press Start
-
           <div class="qtimer" id="qtimer"></div>
         </div>
 
@@ -529,80 +431,38 @@
             disabled
           >
 
-          <button
-            class="btn"
-            id="submitBtn"
-            disabled
-          >
-            Submit
-          </button>
-
-          <button
-            class="btn ghost"
-            id="nextBtn"
-            disabled
-          >
-            Next
-          </button>
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <button class="btn ghost" id="nextBtn" disabled>Next</button>
         </div>
 
         <div class="spacer"></div>
 
         <div class="status">
-          <div class="badge" id="resultBadge">
-            —
-          </div>
-
-          <div class="badge" id="timerBadge">
-            ⏱ 0s
-          </div>
-
-          <div class="badge" id="progressBadge">
-            0/0
-          </div>
-
-          <div class="badge" id="scoreBadge">
-            ✅ 0 ⟂ ❌ 0
-          </div>
-
-          <div class="badge" id="streakBadge">
-            🔥 0
-          </div>
+          <div class="badge" id="resultBadge">—</div>
+          <div class="badge" id="timerBadge">⏱ 0s</div>
+          <div class="badge" id="progressBadge">0/0</div>
+          <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
+          <div class="badge" id="streakBadge">🔥 0</div>
         </div>
 
         <div class="spacer"></div>
 
         <div class="progress">
-          <div
-            id="progressBar"
-            style="width:0%"
-          ></div>
+          <div id="progressBar" style="width:0%"></div>
         </div>
       </div>
 
       <div class="card stats">
-        <h2 style="margin-top:0">
-          Stats & History
-        </h2>
+        <h2 style="margin-top:0">Stats & History</h2>
 
-        <canvas
-          id="spark"
-          style="width:100%; height:80px; display:block"
-        ></canvas>
+        <canvas id="spark" style="width:100%; height:80px; display:block"></canvas>
 
-        <div
-          class="subtitle"
-          id="sparkCaption"
-        >
+        <div class="subtitle" id="sparkCaption">
           Last 0 questions · 0% accuracy
         </div>
 
-        <div
-          id="statsNote"
-          class="subtitle"
-        >
-          Showing only facts you’ve missed at least once
-          (saved locally on this device).
+        <div id="statsNote" class="subtitle">
+          Showing only facts you’ve missed at least once (saved locally on this device).
         </div>
 
         <table id="statsTable">
@@ -621,13 +481,10 @@
     </div>
   </div>
 
-  <canvas
-    class="confetti"
-    id="confetti"
-  ></canvas>
+  <canvas class="confetti" id="confetti"></canvas>
 
   <script>
-    const ALLOWED = [2, 3, 4, 5, 6, 7, 8, 9];
+    const ALLOWED = [2,3,4,5,6,7,8,9];
 
     const tableGrid = document.getElementById('tableGrid');
     const selectedCount = document.getElementById('selectedCount');
@@ -637,62 +494,30 @@
     const playAgainBtn = document.getElementById('playAgainBtn');
     const resetStatsBtn = document.getElementById('resetStatsBtn');
 
-    const practiceConfig =
-      document.getElementById('practiceConfig');
+    const practiceConfig = document.getElementById('practiceConfig');
+    const quizConfig = document.getElementById('quizConfig');
 
-    const quizConfig =
-      document.getElementById('quizConfig');
+    const equationEl = document.getElementById('equation');
+    let qtimerEl = document.getElementById('qtimer');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
 
-    const equationEl =
-      document.getElementById('equation');
+    const resultBadge = document.getElementById('resultBadge');
+    const timerBadge = document.getElementById('timerBadge');
+    const progressBadge = document.getElementById('progressBadge');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const streakBadge = document.getElementById('streakBadge');
+    const progressBar = document.getElementById('progressBar');
 
-    let qtimerEl =
-      document.getElementById('qtimer');
+    const practiceCountEl = document.getElementById('practiceCount');
+    const quizCountEl = document.getElementById('quizCount');
+    const quizSecondsEl = document.getElementById('quizSeconds');
 
-    const answerEl =
-      document.getElementById('answer');
+    const statsTableBody = document.querySelector('#statsTable tbody');
 
-    const submitBtn =
-      document.getElementById('submitBtn');
-
-    const nextBtn =
-      document.getElementById('nextBtn');
-
-    const resultBadge =
-      document.getElementById('resultBadge');
-
-    const timerBadge =
-      document.getElementById('timerBadge');
-
-    const progressBadge =
-      document.getElementById('progressBadge');
-
-    const scoreBadge =
-      document.getElementById('scoreBadge');
-
-    const streakBadge =
-      document.getElementById('streakBadge');
-
-    const progressBar =
-      document.getElementById('progressBar');
-
-    const practiceCountEl =
-      document.getElementById('practiceCount');
-
-    const quizCountEl =
-      document.getElementById('quizCount');
-
-    const quizSecondsEl =
-      document.getElementById('quizSeconds');
-
-    const statsTableBody =
-      document.querySelector('#statsTable tbody');
-
-    const confettiCanvas =
-      document.getElementById('confetti');
-
-    const cfx =
-      confettiCanvas.getContext('2d');
+    const confettiCanvas = document.getElementById('confetti');
+    const cfx = confettiCanvas.getContext('2d');
 
     let selected = new Set();
     let mode = 'practice';
@@ -715,10 +540,6 @@
     let perQRAF = null;
     let lastWholeSec = Infinity;
 
-    /*
-      Prevents a question from being graded twice if Enter is pressed
-      at almost exactly the same moment the timer expires.
-    */
     let questionLocked = false;
 
     const FACT_KEY = 'timesTableStats_v1';
@@ -745,8 +566,7 @@
     }
 
     function updateSelectedCount(){
-      selectedCount.textContent =
-        `${selected.size} selected`;
+      selectedCount.textContent = `${selected.size} selected`;
     }
 
     selectAllBtn.onclick = () => {
@@ -754,9 +574,7 @@
 
       document
         .querySelectorAll('#tableGrid .pill')
-        .forEach(pill => {
-          pill.classList.add('active');
-        });
+        .forEach(p => p.classList.add('active'));
 
       updateSelectedCount();
     };
@@ -766,64 +584,45 @@
 
       document
         .querySelectorAll('#tableGrid .pill')
-        .forEach(pill => {
-          pill.classList.remove('active');
-        });
+        .forEach(p => p.classList.remove('active'));
 
       updateSelectedCount();
     };
 
-    document
-      .querySelectorAll('input[name="mode"]')
-      .forEach(radio => {
-        radio.addEventListener('change', () => {
-          mode = radio.value;
-          toggleModeUI();
-        });
+    document.querySelectorAll('input[name="mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        mode = radio.value;
+        toggleModeUI();
       });
+    });
 
     function toggleModeUI(){
       const isQuiz = mode === 'quiz';
 
-      practiceConfig.classList.toggle(
-        'hidden',
-        isQuiz
-      );
-
-      quizConfig.classList.toggle(
-        'hidden',
-        !isQuiz
-      );
+      practiceConfig.classList.toggle('hidden', isQuiz);
+      quizConfig.classList.toggle('hidden', !isQuiz);
     }
 
     toggleModeUI();
 
-    function clamp(n, min, max){
-      return Math.max(
-        min,
-        Math.min(max, n)
-      );
+    function clamp(n,min,max){
+      return Math.max(min, Math.min(max, n));
     }
 
     function loadStats(){
-      try {
-        return JSON.parse(
-          localStorage.getItem(FACT_KEY) || '{}'
-        );
-      } catch {
+      try{
+        return JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
+      } catch{
         localStorage.removeItem(FACT_KEY);
         return {};
       }
     }
 
     function saveStats(stats){
-      localStorage.setItem(
-        FACT_KEY,
-        JSON.stringify(stats)
-      );
+      localStorage.setItem(FACT_KEY, JSON.stringify(stats));
     }
 
-    function bumpStats(a, b, wasCorrect){
+    function bumpStats(a,b,wasCorrect){
       const key = `${a}x${b}`;
       const stats = loadStats();
 
@@ -847,67 +646,37 @@
     function renderStatsTable(){
       const stats = loadStats();
 
-      const keysWithMisses = Object
-        .keys(stats)
+      const keysWithMisses = Object.keys(stats)
+        .filter(key => stats[key].seen > stats[key].correct)
         .filter(key => {
-          return stats[key].seen >
-            stats[key].correct;
-        })
-        .filter(key => {
-          const [a, b] =
-            key.split('x').map(Number);
-
-          return (
-            ALLOWED.includes(a) &&
-            ALLOWED.includes(b)
-          );
+          const [a,b] = key.split('x').map(Number);
+          return ALLOWED.includes(a) && ALLOWED.includes(b);
         });
 
       const rows = keysWithMisses
-        .sort((key1, key2) => {
-          const accuracy1 =
-            stats[key1].seen
-              ? stats[key1].correct /
-                stats[key1].seen
-              : 0;
+        .sort((key1,key2) => {
+          const accuracy1 = stats[key1].seen
+            ? stats[key1].correct / stats[key1].seen
+            : 0;
 
-          const accuracy2 =
-            stats[key2].seen
-              ? stats[key2].correct /
-                stats[key2].seen
-              : 0;
+          const accuracy2 = stats[key2].seen
+            ? stats[key2].correct / stats[key2].seen
+            : 0;
 
           return accuracy1 - accuracy2;
         })
         .map(key => {
-          const {
-            seen,
-            correct
-          } = stats[key];
-
+          const {seen,correct} = stats[key];
           const accuracy = seen
-            ? Math.round(
-                100 * correct / seen
-              )
+            ? Math.round(100 * correct / seen)
             : 0;
 
           return `
             <tr>
-              <td style="text-align:left">
-                ${key.replace('x', ' × ')}
-              </td>
-
-              <td style="text-align:center">
-                ${seen}
-              </td>
-
-              <td style="text-align:center">
-                ${correct}
-              </td>
-
-              <td style="text-align:center">
-                ${accuracy}%
-              </td>
+              <td style="text-align:left">${key.replace('x',' × ')}</td>
+              <td style="text-align:center">${seen}</td>
+              <td style="text-align:center">${correct}</td>
+              <td style="text-align:center">${accuracy}%</td>
             </tr>
           `;
         })
@@ -915,16 +684,7 @@
 
       statsTableBody.innerHTML =
         rows ||
-        `
-          <tr>
-            <td
-              colspan="4"
-              style="text-align:center; color:#9ca3af"
-            >
-              No misses yet — nice!
-            </td>
-          </tr>
-        `;
+        '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No misses yet — nice!</td></tr>';
     }
 
     renderStatsTable();
@@ -941,19 +701,12 @@
     let accHistory = [];
 
     function updateEncouragement(){
-      const answered =
-        correct + wrong;
-
-      const accuracy = answered
-        ? correct / answered
-        : 0;
+      const answered = correct + wrong;
+      const accuracy = answered ? correct / answered : 0;
 
       accHistory.push(accuracy);
 
-      if (
-        accHistory.length >
-        ACC_HISTORY_MAX
-      ){
+      if (accHistory.length > ACC_HISTORY_MAX){
         accHistory.shift();
       }
 
@@ -961,253 +714,126 @@
     }
 
     function drawSpark(){
-      const canvas =
-        document.getElementById('spark');
-
-      const caption =
-        document.getElementById('sparkCaption');
+      const canvas = document.getElementById('spark');
+      const caption = document.getElementById('sparkCaption');
 
       if (!canvas){
         return;
       }
 
-      const dpr =
-        window.devicePixelRatio || 1;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const cssWidth = Math.max(300, Math.round(rect.width || 300));
+      const cssHeight = Math.max(60, Math.round(rect.height || 80));
 
-      const rect =
-        canvas.getBoundingClientRect();
+      canvas.width = cssWidth * dpr;
+      canvas.height = cssHeight * dpr;
 
-      const cssWidth =
-        Math.max(
-          300,
-          Math.round(rect.width || 300)
-        );
+      const ctx = canvas.getContext('2d');
 
-      const cssHeight =
-        Math.max(
-          60,
-          Math.round(rect.height || 80)
-        );
+      ctx.setTransform(dpr,0,0,dpr,0,0);
 
-      canvas.width =
-        cssWidth * dpr;
+      const width = canvas.width / dpr;
+      const height = canvas.height / dpr;
 
-      canvas.height =
-        cssHeight * dpr;
+      ctx.clearRect(0,0,width,height);
 
-      const ctx =
-        canvas.getContext('2d');
-
-      ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-      );
-
-      const width =
-        canvas.width / dpr;
-
-      const height =
-        canvas.height / dpr;
-
-      ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-      );
-
-      ctx.strokeStyle =
-        'rgba(255,255,255,0.08)';
-
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1;
 
-      [0.25, 0.5, 0.75, 1]
-        .forEach(level => {
-          const y =
-            height -
-            level * (height - 10) -
-            5;
+      [0.25,0.5,0.75,1].forEach(level => {
+        const y = height - level * (height - 10) - 5;
 
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(width, y);
-          ctx.stroke();
-        });
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(width,y);
+        ctx.stroke();
+      });
 
-      const answered =
-        correct + wrong;
-
-      const currentAccuracy =
-        answered
-          ? correct / answered
-          : 0;
+      const answered = correct + wrong;
+      const currentAccuracy = answered ? correct / answered : 0;
 
       if (accHistory.length < 2){
         if (caption){
           caption.textContent =
-            `Last ${answered} questions · ` +
-            `${Math.round(currentAccuracy * 100)}% accuracy`;
+            `Last ${answered} questions · ${Math.round(currentAccuracy * 100)}% accuracy`;
         }
 
         return;
       }
 
-      const step =
-        (width - 2) /
-        (accHistory.length - 1);
+      const step = (width - 2) / (accHistory.length - 1);
 
       ctx.beginPath();
 
-      accHistory.forEach(
-        (value, index) => {
-          const x =
-            1 + index * step;
+      accHistory.forEach((value,index) => {
+        const x = 1 + index * step;
+        const y = height - value * (height - 10) - 5;
 
-          const y =
-            height -
-            value * (height - 10) -
-            5;
-
-          if (index === 0){
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+        if (index === 0){
+          ctx.moveTo(x,y);
+        } else {
+          ctx.lineTo(x,y);
         }
-      );
+      });
 
       ctx.lineWidth = 2;
-      ctx.strokeStyle =
-        'rgba(56,189,248,1)';
-
+      ctx.strokeStyle = 'rgba(56,189,248,1)';
       ctx.stroke();
 
-      const lastX =
-        1 +
-        (accHistory.length - 1) *
-        step;
+      const lastX = 1 + (accHistory.length - 1) * step;
+      const lastValue = accHistory[accHistory.length - 1];
+      const lastY = height - lastValue * (height - 10) - 5;
 
-      const lastValue =
-        accHistory[
-          accHistory.length - 1
-        ];
-
-      const lastY =
-        height -
-        lastValue * (height - 10) -
-        5;
-
-      ctx.lineTo(lastX, height - 2);
-      ctx.lineTo(1, height - 2);
+      ctx.lineTo(lastX,height - 2);
+      ctx.lineTo(1,height - 2);
       ctx.closePath();
 
-      const gradient =
-        ctx.createLinearGradient(
-          0,
-          0,
-          0,
-          height
-        );
+      const gradient = ctx.createLinearGradient(0,0,0,height);
 
-      gradient.addColorStop(
-        0,
-        'rgba(56,189,248,0.25)'
-      );
-
-      gradient.addColorStop(
-        1,
-        'rgba(56,189,248,0.00)'
-      );
+      gradient.addColorStop(0,'rgba(56,189,248,0.25)');
+      gradient.addColorStop(1,'rgba(56,189,248,0.00)');
 
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      const previousValue =
-        accHistory[
-          accHistory.length - 2
-        ];
-
-      const rising =
-        lastValue >= previousValue;
+      const previousValue = accHistory[accHistory.length - 2];
+      const rising = lastValue >= previousValue;
 
       ctx.beginPath();
-
-      ctx.arc(
-        lastX,
-        lastY,
-        3,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fillStyle =
-        rising
-          ? '#10b981'
-          : '#ef4444';
-
+      ctx.arc(lastX,lastY,3,0,Math.PI * 2);
+      ctx.fillStyle = rising ? '#10b981' : '#ef4444';
       ctx.fill();
 
       if (caption){
         caption.textContent =
-          `Last ${answered} questions · ` +
-          `${Math.round(lastValue * 100)}% accuracy ` +
-          `${rising ? '↗' : '↘'}`;
+          `Last ${answered} questions · ${Math.round(lastValue * 100)}% accuracy ${rising ? '↗' : '↘'}`;
       }
     }
 
-    window.addEventListener(
-      'resize',
-      drawSpark
-    );
+    window.addEventListener('resize',drawSpark);
 
     function buildPool(){
-      const selectedTables =
-        selected.size
-          ? Array.from(selected)
-          : ALLOWED.slice();
+      const selectedTables = selected.size
+        ? Array.from(selected)
+        : ALLOWED.slice();
 
       const deck = [];
 
-      for (
-        const firstFactor
-        of selectedTables
-      ){
-        for (
-          const secondFactor
-          of ALLOWED
-        ){
+      for (const a of selectedTables){
+        for (const b of ALLOWED){
           deck.push({
-            a:firstFactor,
-            b:secondFactor,
-            answer:
-              firstFactor *
-              secondFactor
+            a,
+            b,
+            answer:a * b
           });
         }
       }
 
-      for (
-        let index = deck.length - 1;
-        index > 0;
-        index--
-      ){
-        const randomIndex =
-          Math.floor(
-            Math.random() *
-            (index + 1)
-          );
+      for (let i = deck.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
 
-        [
-          deck[index],
-          deck[randomIndex]
-        ] = [
-          deck[randomIndex],
-          deck[index]
-        ];
+        [deck[i],deck[j]] = [deck[j],deck[i]];
       }
 
       return deck;
@@ -1223,60 +849,31 @@
 
       pool = buildPool();
 
-      mode =
-        document.querySelector(
-          'input[name="mode"]:checked'
-        ).value;
+      mode = document.querySelector('input[name="mode"]:checked').value;
 
       if (mode === 'practice'){
-        const numberOfQuestions =
-          parseInt(
-            practiceCountEl.value,
-            10
-          );
+        const numberOfQuestions = parseInt(practiceCountEl.value,10);
 
         totalQ =
-          Number.isFinite(
-            numberOfQuestions
-          ) &&
-          numberOfQuestions > 0
-            ? Math.min(
-                numberOfQuestions,
-                200
-              )
+          Number.isFinite(numberOfQuestions) && numberOfQuestions > 0
+            ? Math.min(numberOfQuestions,200)
             : Infinity;
 
         submitBtn.disabled = false;
         nextBtn.disabled = false;
       } else {
-        const numberOfQuestions =
-          parseInt(
-            quizCountEl.value,
-            10
-          );
+        const numberOfQuestions = parseInt(quizCountEl.value,10);
 
         totalQ =
-          Number.isFinite(
-            numberOfQuestions
-          ) &&
-          numberOfQuestions > 0
-            ? Math.min(
-                numberOfQuestions,
-                200
-              )
+          Number.isFinite(numberOfQuestions) && numberOfQuestions > 0
+            ? Math.min(numberOfQuestions,200)
             : 20;
 
-        /*
-          Submit is now enabled in Quiz mode.
-        */
         submitBtn.disabled = false;
         nextBtn.disabled = true;
 
         quizSeconds = clamp(
-          parseInt(
-            quizSecondsEl.value,
-            10
-          ) || 5,
+          parseInt(quizSecondsEl.value,10) || 5,
           1,
           10
         );
@@ -1293,17 +890,14 @@
 
       answerEl.disabled = false;
 
-      playAgainBtn.classList.add(
-        'hidden'
-      );
+      playAgainBtn.classList.add('hidden');
 
       resultBadge.textContent =
         mode === 'quiz'
           ? `Quiz: ${quizSeconds}s per question`
           : 'Practice mode';
 
-      resultBadge.style.borderColor =
-        'rgba(255,255,255,.15)';
+      resultBadge.style.borderColor = 'rgba(255,255,255,.15)';
 
       setTimerBadge(0);
       progress();
@@ -1313,17 +907,15 @@
 
       timerInt = setInterval(() => {
         timer += 1;
-      }, 1000);
+      },1000);
 
       next();
       answerEl.focus();
 
-      document
-        .querySelector('.quiz')
-        .scrollIntoView({
-          block:'start',
-          behavior:'smooth'
-        });
+      document.querySelector('.quiz').scrollIntoView({
+        block:'start',
+        behavior:'smooth'
+      });
     }
 
     function stopSessionTimer(){
@@ -1346,12 +938,9 @@
       nextBtn.disabled = true;
 
       equationEl.innerHTML =
-        `Done! Score: ${correct} correct, ` +
-        `${wrong} wrong.`;
+        `Done! Score: ${correct} correct, ${wrong} wrong.`;
 
-      playAgainBtn.classList.remove(
-        'hidden'
-      );
+      playAgainBtn.classList.remove('hidden');
 
       setTimerBadge(0);
       fireConfetti();
@@ -1362,10 +951,7 @@
         return;
       }
 
-      if (
-        isFinite(totalQ) &&
-        currentQ >= totalQ
-      ){
+      if (isFinite(totalQ) && currentQ >= totalQ){
         finish();
         return;
       }
@@ -1374,37 +960,23 @@
         pool = buildPool();
       }
 
-      const randomIndex =
-        Math.floor(
-          Math.random() *
-          pool.length
-        );
+      const randomIndex = Math.floor(Math.random() * pool.length);
 
-      current =
-        pool.splice(
-          randomIndex,
-          1
-        )[0];
-
+      current = pool.splice(randomIndex,1)[0];
       questionLocked = false;
 
       equationEl.innerHTML =
-        `${current.a} × ${current.b} = ?` +
-        `<div class="qtimer" id="qtimer"></div>`;
+        `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
 
-      qtimerEl =
-        document.getElementById(
-          'qtimer'
-        );
-
-      qtimerEl.style.transform =
-        'scaleX(0)';
+      qtimerEl = document.getElementById('qtimer');
+      qtimerEl.style.transform = 'scaleX(0)';
 
       answerEl.value = '';
       answerEl.disabled = false;
       submitBtn.disabled = false;
 
       currentQ += 1;
+
       progress();
 
       if (mode === 'quiz'){
@@ -1417,18 +989,7 @@
 
     function progress(){
       progressBadge.textContent =
-        `${
-          isFinite(totalQ)
-            ? Math.min(
-                currentQ,
-                totalQ
-              )
-            : currentQ
-        }/${
-          isFinite(totalQ)
-            ? totalQ
-            : '∞'
-        }`;
+        `${isFinite(totalQ) ? Math.min(currentQ,totalQ) : currentQ}/${isFinite(totalQ) ? totalQ : '∞'}`;
 
       scoreBadge.textContent =
         `✅ ${correct} ⟂ ❌ ${wrong}`;
@@ -1436,37 +997,19 @@
       streakBadge.textContent =
         `🔥 ${streak}`;
 
-      const percentage =
-        isFinite(totalQ)
-          ? Math.min(
-              100,
-              Math.round(
-                100 *
-                currentQ /
-                totalQ
-              )
-            )
-          : 0;
+      const percentage = isFinite(totalQ)
+        ? Math.min(100,Math.round(100 * currentQ / totalQ))
+        : 0;
 
-      progressBar.style.width =
-        `${percentage}%`;
+      progressBar.style.width = `${percentage}%`;
     }
 
-    /*
-      Submit works in both Practice and Quiz modes.
-    */
     function submit(){
-      if (
-        !running ||
-        !current ||
-        questionLocked
-      ){
+      if (!running || !current || questionLocked){
         return;
       }
 
-      if (
-        answerEl.value.trim() === ''
-      ){
+      if (answerEl.value.trim() === ''){
         flashBadge(
           resultBadge,
           'Enter an answer first',
@@ -1478,29 +1021,15 @@
       }
 
       questionLocked = true;
-
-      /*
-        Cancel the quiz timer immediately so it cannot grade
-        the same question after Enter or Submit was pressed.
-      */
       clearPerQAnim();
 
-      const value =
-        Number(answerEl.value);
+      const value = Number(answerEl.value);
+      const isCorrect = value === current.answer;
 
-      const isCorrect =
-        value === current.answer;
-
-      gradeQuestion(
-        isCorrect,
-        false
-      );
+      gradeQuestion(isCorrect,false);
 
       if (mode === 'quiz'){
-        if (
-          isFinite(totalQ) &&
-          currentQ >= totalQ
-        ){
+        if (isFinite(totalQ) && currentQ >= totalQ){
           finish();
         } else {
           next();
@@ -1512,15 +1041,8 @@
       }
     }
 
-    function gradeQuestion(
-      isCorrect,
-      timedOut
-    ){
-      bumpStats(
-        current.a,
-        current.b,
-        isCorrect
-      );
+    function gradeQuestion(isCorrect,timedOut){
+      bumpStats(current.a,current.b,isCorrect);
 
       if (isCorrect){
         correct += 1;
@@ -1528,9 +1050,7 @@
 
         flashBadge(
           resultBadge,
-          `Correct! ` +
-          `${current.a}×${current.b}=` +
-          `${current.answer}`,
+          `Correct! ${current.a}×${current.b}=${current.answer}`,
           'ok'
         );
 
@@ -1562,120 +1082,76 @@
     function startPerQCountdown(){
       clearPerQAnim();
 
-      const duration =
-        quizSeconds * 1000;
+      const duration = quizSeconds * 1000;
+      const startTime = performance.now();
 
-      const startTime =
-        performance.now();
-
-      perQDeadline =
-        startTime + duration;
-
+      perQDeadline = startTime + duration;
       lastWholeSec = Infinity;
 
       function tick(now){
-        if (
-          !running ||
-          questionLocked
-        ){
+        if (!running || questionLocked){
           clearPerQAnim();
           return;
         }
 
-        const remainingMilliseconds =
-          Math.max(
-            0,
-            perQDeadline - now
-          );
+        const remainingMilliseconds = Math.max(
+          0,
+          perQDeadline - now
+        );
 
-        const remainingSeconds =
-          Math.ceil(
-            remainingMilliseconds /
-            1000
-          );
+        const remainingSeconds = Math.ceil(
+          remainingMilliseconds / 1000
+        );
 
-        if (
-          remainingSeconds !==
-          lastWholeSec
-        ){
-          setTimerBadge(
-            remainingSeconds
-          );
-
-          lastWholeSec =
-            constClamp(
-              remainingSeconds
-            );
+        if (remainingSeconds !== lastWholeSec){
+          setTimerBadge(remainingSeconds);
+          lastWholeSec = constClamp(remainingSeconds);
         }
 
         const percentageElapsed =
-          1 -
-          (
-            remainingMilliseconds /
-            duration
-          );
+          1 - remainingMilliseconds / duration;
 
         if (qtimerEl){
           qtimerEl.style.transform =
             `scaleX(${percentageElapsed})`;
         }
 
-        if (
-          remainingMilliseconds <= 0
-        ){
+        if (remainingMilliseconds <= 0){
           clearPerQAnim();
           autoGradeQuiz();
           return;
         }
 
-        perQRAF =
-          requestAnimationFrame(
-            tick
-          );
+        perQRAF = requestAnimationFrame(tick);
       }
 
-      perQRAF =
-        requestAnimationFrame(
-          tick
-        );
+      perQRAF = requestAnimationFrame(tick);
     }
 
     function constClamp(number){
-      return Math.max(0, number);
+      return Math.max(0,number);
     }
 
     function setTimerBadge(seconds){
-      timerBadge.textContent =
-        `⏱ ${seconds}s`;
+      timerBadge.textContent = `⏱ ${seconds}s`;
     }
 
     function autoGradeQuiz(){
-      if (
-        !running ||
-        !current ||
-        questionLocked
-      ){
+      if (!running || !current || questionLocked){
         return;
       }
 
       questionLocked = true;
 
-      const value =
-        Number(answerEl.value);
+      const value = Number(answerEl.value);
 
       const isCorrect =
         answerEl.value.trim() !== '' &&
         value === current.answer;
 
-      gradeQuestion(
-        isCorrect,
-        true
-      );
+      gradeQuestion(isCorrect,true);
 
-      if (
-        isFinite(totalQ) &&
-        currentQ >= totalQ
-      ){
+      if (isFinite(totalQ) && currentQ >= totalQ){
         finish();
       } else {
         next();
@@ -1683,11 +1159,7 @@
       }
     }
 
-    function flashBadge(
-      element,
-      text,
-      type
-    ){
+    function flashBadge(element,text,type){
       element.textContent = text;
 
       const colors = {
@@ -1697,34 +1169,25 @@
       };
 
       element.style.borderColor =
-        colors[type] ||
-        'rgba(255,255,255,.15)';
+        colors[type] || 'rgba(255,255,255,.15)';
 
       element.style.boxShadow =
-        `0 0 0 2px ` +
-        `${colors[type]}22`;
+        `0 0 0 2px ${colors[type]}22`;
 
       setTimeout(() => {
-        element.style.boxShadow =
-          'none';
-      }, 250);
+        element.style.boxShadow = 'none';
+      },250);
     }
 
     let flakes = [];
     let raf = null;
 
     function resizeCanvas(){
-      confettiCanvas.width =
-        window.innerWidth;
-
-      confettiCanvas.height =
-        window.innerHeight;
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
     }
 
-    window.addEventListener(
-      'resize',
-      resizeCanvas
-    );
+    window.addEventListener('resize',resizeCanvas);
 
     resizeCanvas();
 
@@ -1743,7 +1206,7 @@
         );
 
         flakes = [];
-      }, 1500);
+      },1500);
     }
 
     function tinyBurst(){
@@ -1761,49 +1224,19 @@
         );
 
         flakes = [];
-      }, 600);
+      },600);
     }
 
     function spawn(numberOfFlakes){
-      for (
-        let index = 0;
-        index < numberOfFlakes;
-        index++
-      ){
+      for (let i = 0; i < numberOfFlakes; i++){
         flakes.push({
-          x:
-            confettiCanvas.width / 2 +
-            (Math.random() - 0.5) *
-            120,
-
-          y:
-            confettiCanvas.height / 2 +
-            (Math.random() - 0.5) *
-            40,
-
-          r:
-            2 +
-            Math.random() *
-            4,
-
-          vx:
-            (Math.random() - 0.5) *
-            6,
-
-          vy:
-            -(
-              2 +
-              Math.random() *
-              4
-            ),
-
-          a:
-            Math.random() *
-            Math.PI,
-
-          va:
-            (Math.random() - 0.5) *
-            0.2
+          x:confettiCanvas.width / 2 + (Math.random() - 0.5) * 120,
+          y:confettiCanvas.height / 2 + (Math.random() - 0.5) * 40,
+          r:2 + Math.random() * 4,
+          vx:(Math.random() - 0.5) * 6,
+          vy:-(2 + Math.random() * 4),
+          a:Math.random() * Math.PI,
+          va:(Math.random() - 0.5) * 0.2
         });
       }
     }
@@ -1826,18 +1259,11 @@
           flake.a += flake.va;
 
           cfx.save();
-
-          cfx.translate(
-            flake.x,
-            flake.y
-          );
-
+          cfx.translate(flake.x,flake.y);
           cfx.rotate(flake.a);
 
           cfx.fillStyle =
-            `hsl(` +
-            `${(flake.x + flake.y) % 360}, ` +
-            `90%, 60%)`;
+            `hsl(${(flake.x + flake.y) % 360}, 90%, 60%)`;
 
           cfx.fillRect(
             -flake.r,
@@ -1849,25 +1275,14 @@
           cfx.restore();
         });
 
-        flakes =
-          flakes.filter(flake => {
-            return (
-              flake.y <
-              confettiCanvas.height +
-              10
-            );
-          });
+        flakes = flakes.filter(
+          flake => flake.y < confettiCanvas.height + 10
+        );
 
-        raf =
-          requestAnimationFrame(
-            step
-          );
+        raf = requestAnimationFrame(step);
       }
 
-      raf =
-        requestAnimationFrame(
-          step
-        );
+      raf = requestAnimationFrame(step);
     }
 
     startBtn.onclick = start;
@@ -1875,28 +1290,18 @@
     submitBtn.onclick = submit;
 
     nextBtn.onclick = () => {
-      if (
-        mode === 'practice' &&
-        running &&
-        !questionLocked
-      ){
+      if (mode === 'practice' && running && !questionLocked){
         next();
         answerEl.focus();
       }
     };
 
-    /*
-      Enter now submits in both Practice and Quiz modes.
-    */
-    answerEl.addEventListener(
-      'keydown',
-      event => {
-        if (event.key === 'Enter'){
-          event.preventDefault();
-          submit();
-        }
+    answerEl.addEventListener('keydown',event => {
+      if (event.key === 'Enter'){
+        event.preventDefault();
+        submit();
       }
-    );
+    });
   </script>
 </body>
 </html>
