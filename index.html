@@ -76,7 +76,6 @@
     table{width:100%; border-collapse:collapse; font-size:14px}
     th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
     thead th{position:sticky; top:0; background:#0b1222cc; backdrop-filter:saturate(180%) blur(6px)}
-    /* Make the right-side stats card scroll independently so the page never gets "stuck" */
     .stats{max-height:60vh; overflow:auto}
     .heart{
       display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
@@ -84,7 +83,6 @@
       box-shadow:0 8px 24px rgba(251,113,133,.35);
     }
     .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)); width:22px; height:22px}
-    /* big faint background heart */
     .bg-heart{position:absolute; right:-40px; top:-30px; width:180px; opacity:.15; transform:rotate(12deg)}
     .hidden{display:none !important}
     .confetti{position:fixed; inset:0; pointer-events:none}
@@ -92,7 +90,6 @@
 </head>
 <body>
   <div class="app">
-    <!-- Perfectly-proportioned background heart -->
     <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
     </svg>
@@ -105,7 +102,7 @@
         </span>
         Adelyn's Times Tables Practice
       </h1>
-      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit or let the timed auto-grade do the work in Quiz mode.</div>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or timed auto-grade with early Enter submission (Quiz).</div>
       <div class="controls row">
         <div class="card" style="flex:2; min-width:280px">
           <div class="section-title">1) Choose Tables (×2–×9)</div>
@@ -163,8 +160,6 @@
       </div>
       <div class="card stats">
         <h2 style="margin-top:0">Stats & History</h2>
-        <!-- Encouragement sparkline -->
-        
         <canvas id="spark" style="width:100%; height:80px; display:block"></canvas>
         <div class="subtitle" id="sparkCaption">Last 0 questions · 0% accuracy</div>
         <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
@@ -177,9 +172,7 @@
   </div>
   <canvas class="confetti" id="confetti"></canvas>
   <script>
-    // === Config: allowed factors are strictly 2–9 ===
     const ALLOWED = [2,3,4,5,6,7,8,9];
-    // --- State ---
     const tableGrid = document.getElementById('tableGrid');
     const selectedCount = document.getElementById('selectedCount');
     const selectAllBtn = document.getElementById('selectAll');
@@ -206,20 +199,20 @@
     const statsTableBody = document.querySelector('#statsTable tbody');
     const confettiCanvas = document.getElementById('confetti');
     const cfx = confettiCanvas.getContext('2d');
+    
     let selected = new Set();
     let mode = 'practice';
     let running = false;
-    let timer = 0, timerInt = null; // session timer (informational)
+    let timer = 0, timerInt = null;
     let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
-    let pool = []; // deck of remaining questions (no repeats within a lap)
+    let pool = [];
     let current = null;
-    // quiz per-question timing (user-configurable)
-    let quizSeconds = 5; // updated from input when starting quiz
-    let perQDeadline = 0; // timestamp (ms)
-    let perQRAF = null;   // requestAnimationFrame id
+    let quizSeconds = 5;
+    let perQDeadline = 0;
+    let perQRAF = null;
     let lastWholeSec = Infinity;
     const FACT_KEY = 'timesTableStats_v1';
-    // --- Build factors grid (2..9) ---
+
     for (const i of ALLOWED){
       const pill = document.createElement('div');
       pill.className = 'pill';
@@ -258,7 +251,7 @@
     }
     toggleModeUI();
     function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
-    // --- Stats (localStorage) ---
+    
     const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
     const saveStats = (s)=> localStorage.setItem(FACT_KEY, JSON.stringify(s));
     function bumpStats(a,b, wasCorrect){
@@ -272,7 +265,6 @@
     }
     function renderStatsTable(){
       const s = loadStats();
-      // Only include facts with at least one miss (seen > correct) and within allowed domain
       const keysWithMisses = Object.keys(s)
         .filter(k => s[k].seen > s[k].correct)
         .filter(k => { const [a,b] = k.split('x').map(Number); return ALLOWED.includes(a) && ALLOWED.includes(b); });
@@ -280,7 +272,7 @@
         .sort((k1,k2)=>{
           const acc1 = s[k1].seen ? s[k1].correct / s[k1].seen : 0;
           const acc2 = s[k2].seen ? s[k2].correct / s[k2].seen : 0;
-          return acc1 - acc2; // lowest accuracy at top
+          return acc1 - acc2;
         })
         .map(k=>{
           const {seen, correct} = s[k];
@@ -293,11 +285,11 @@
     resetStatsBtn.onclick = ()=>{
       if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); drawSpark(); }
     }
-    // --- Encouragement Sparkline (rolling accuracy over session) ---
-    const ACC_HISTORY_MAX = 60; // keep last N points
+    
+    const ACC_HISTORY_MAX = 60;
     let accHistory = [];
     function updateEncouragement() {
-      const acc = currentQ ? correct / currentQ : 0; // session accuracy
+      const acc = currentQ ? correct / currentQ : 0;
       accHistory.push(acc);
       if (accHistory.length > ACC_HISTORY_MAX) accHistory.shift();
       drawSpark();
@@ -316,7 +308,6 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const w = canvas.width / dpr, h = canvas.height / dpr;
       ctx.clearRect(0, 0, w, h);
-      // baseline grid
       ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1;
       [0.25, 0.5, 0.75, 1].forEach(level => {
@@ -327,7 +318,6 @@
         if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round((currentQ? (correct/currentQ):0)*100)}% accuracy`;
         return;
       }
-      // line path
       const step = (w - 2) / (accHistory.length - 1);
       ctx.beginPath();
       accHistory.forEach((v, i) => {
@@ -336,9 +326,8 @@
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(56,189,248,1)'; // sky-400
+      ctx.strokeStyle = 'rgba(56,189,248,1)';
       ctx.stroke();
-      // gradient fill under line (subtle)
       const lastX = 1 + (accHistory.length - 1) * step;
       const lastY = h - (accHistory[accHistory.length - 1] * (h - 10)) - 5;
       ctx.lineTo(lastX, h - 2);
@@ -349,19 +338,17 @@
       grad.addColorStop(1, 'rgba(56,189,248,0.00)');
       ctx.fillStyle = grad;
       ctx.fill();
-      // last point dot (green if rising, red if falling)
       const last = accHistory[accHistory.length - 1];
       const prev = accHistory[accHistory.length - 2];
       const rising = last >= prev;
       ctx.beginPath();
       ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = rising ? '#10b981' : '#ef4444'; // ok / err
+      ctx.fillStyle = rising ? '#10b981' : '#ef4444';
       ctx.fill();
-      // caption
       if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round(last * 100)}% accuracy ${rising ? '↗' : '↘'}`;
     }
     window.addEventListener('resize', drawSpark);
-    // --- Quiz generation (2–9 only) ---
+    
     function buildPool(){
       const sel = selected.size ? Array.from(selected) : ALLOWED.slice();
       const deck = [];
@@ -370,18 +357,17 @@
           deck.push({a,b,answer:a*b});
         }
       }
-      // shuffle (Fisher–Yates)
       for (let i=deck.length-1;i>0;i--){
         const j = Math.floor(Math.random()*(i+1));
         [deck[i], deck[j]] = [deck[j], deck[i]];
       }
       return deck;
     }
+    
     function start(){
       if (!selected.size){ selectAllBtn.click(); }
       pool = buildPool();
       mode = document.querySelector('input[name="mode"]:checked').value;
-      // counts per mode
       if (mode==='practice'){
         const n = parseInt(practiceCountEl.value,10);
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
@@ -392,10 +378,8 @@
         totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
         submitBtn.disabled = false;  // Enabled so user can click to submit early
         nextBtn.disabled = true;     // Kept disabled since quiz auto-advances
-        // seconds per question (clamped 1..10)
         quizSeconds = clamp(parseInt(quizSecondsEl.value,10) || 5, 1, 10);
       }
-      // reset session state
       currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
       answerEl.disabled=false;
       playAgainBtn.classList.add('hidden');
@@ -403,12 +387,11 @@
       resultBadge.style.borderColor='rgba(255,255,255,.15)';
       setTimerBadge(0);
       progress();
-      // reset encouragement spark
       accHistory = [];
       drawSpark();
       stopSessionTimer();
-      timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
-      next(); // draw first question
+      timerInt = setInterval(()=>{ timer += 1; }, 1000);
+      next();
       answerEl.focus();
       document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
@@ -421,12 +404,10 @@
       setTimerBadge(0);
       fireConfetti();
     }
-    // --- No-repeat draw (until deck is empty), then reshuffle for next lap ---
     function next(){
       if (!running) return;
       if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
       if (pool.length === 0) pool = buildPool();
-      // draw without replacement
       const j = Math.floor(Math.random() * pool.length);
       current = pool.splice(j, 1)[0];
       equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
@@ -444,34 +425,38 @@
       const pct = isFinite(totalQ) ? Math.min(100, Math.round(100*currentQ/totalQ)) : 0;
       progressBar.style.width = pct + '%';
     }
-    function submit(){
+
+    // === NEW UNIFIED ANSWER HANDLER ===
+    function handleAnswer(isAutoTimeOut){
       if (!running || !current) return;
-      if (mode==='quiz') {
-        // If in quiz mode, clear the countdown animation and grade immediately
+      
+      // If we are in quiz mode, immediately stop any running countdown!
+      if (mode === 'quiz') {
         clearPerQAnim();
-        autoGradeQuiz();
-        return;
       }
-      const value = parseInt(answerEl.value,10);
+      
+      const value = parseInt(answerEl.value, 10);
       const ok = (value === current.answer);
-      gradeAndAdvance(ok, /*auto*/ false);
-    }
-    function gradeAndAdvance(ok, auto){
+      
       bumpStats(current.a, current.b, ok);
       if (ok){
         correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
         tinyBurst();
       } else {
-        wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
+        wrong++; streak=0; flashBadge(resultBadge, isAutoTimeOut ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
       }
       progress();
       updateEncouragement();
-      if (mode==='practice'){
+      
+      // Advance to the next question automatically
+      if (isFinite(totalQ) && currentQ >= totalQ){
+        finish();
+      } else {
         next();
         if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
       }
     }
-    // --- Per-question quiz countdown (smooth via rAF + transform) ---
+
     function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
     function startPerQCountdown(){
       clearPerQAnim();
@@ -487,24 +472,15 @@
         if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
         if (remainingMs <= 0){
           clearPerQAnim();
-          autoGradeQuiz();
+          handleAnswer(true);
           return;
         }
         perQRAF = requestAnimationFrame(tick);
       }
       perQRAF = requestAnimationFrame(tick);
     }
-    // helper for non-negative seconds display
     function constClamp(n){ return Math.max(0, n); }
     function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
-    function autoGradeQuiz(){
-      if (!running || !current) return;
-      const value = parseInt(answerEl.value,10);
-      const ok = (value === current.answer);
-      gradeAndAdvance(ok, /*auto*/ true);
-      if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
-      else { next(); answerEl.focus(); }
-    }
     function flashBadge(el, text, type){
       el.textContent = text;
       const colors = {ok: 'var(--ok)', err: 'var(--err)', warn: 'var(--warn)'};
@@ -512,7 +488,7 @@
       el.style.boxShadow = `0 0 0 2px ${colors[type]}22`;
       setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
     }
-    // --- Confetti ---
+    
     let flakes=[]; let raf=null;
     function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
@@ -551,15 +527,25 @@
       }
       raf = requestAnimationFrame(step);
     }
-    // --- Events ---
+
+    // === UPDATED EVENT LISTENERS ===
     startBtn.onclick = start;
     playAgainBtn.onclick = start;
-    submitBtn.onclick = submit;
-    nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
-    // Keyboard behavior: Enter submits in both Practice and Quiz modes now!
-    answerEl.addEventListener('keydown', (e)=>{
-      if (e.key==='Enter'){
-        submit();
+    
+    submitBtn.onclick = (e) => {
+      e.preventDefault();
+      handleAnswer(false);
+    };
+    
+    nextBtn.onclick = (e) => {
+      e.preventDefault();
+      if (mode==='practice') next();
+    };
+    
+    answerEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        handleAnswer(false);
       }
     });
   </script>
