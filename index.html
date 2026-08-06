@@ -142,7 +142,7 @@
             letter-spacing: 0.5px;
         }
         
-        /* Fixed Width Equation Slots */
+        /* Fixed Width Equation Slots to Prevent Jumping */
         .equation-display {
             font-size: 4.5rem; font-weight: bold; margin: 2rem 0;
             min-height: 120px; 
@@ -314,10 +314,6 @@
 
         <div class="settings-row">
             <div class="settings-group" style="flex: 100%;">
-                <label class="title">Learning Options</label>
-                <label class="radio-option" style="font-weight: 600; margin-bottom: 10px;">
-                    <input type="checkbox" id="dynamic-learning" checked> Enable Dynamic Learning (Auto-repeats tricky & missed facts)
-                </label>
                 <label class="radio-option" style="font-weight: 600; margin: 0;">
                     <input type="checkbox" id="missing-var"> Enable Missing Variables (e.g. 6 &times; ? = 42)
                 </label>
@@ -383,20 +379,13 @@
     </div>
 
     <script>
-        // List of universally tricky math facts to double-weight in Dynamic Learning mode
-        const HARD_FACTS = [
-            {a: 6, b: 7}, {a: 6, b: 8}, {a: 7, b: 8}, // Big Three
-            {a: 6, b: 6}, {a: 7, b: 7}, {a: 8, b: 8}, // Squares
-            {a: 3, b: 7}, {a: 3, b: 8}, {a: 4, b: 7}, {a: 4, b: 8}, // 3 & 4 Crossovers
-            {a: 6, b: 9}, {a: 7, b: 9}, {a: 8, b: 9}  // High 9s
-        ];
-
         let practiceList = [];
         let reviewQueue = [];
         let currentIndex = 0;
         let timerId = null;
         let timerId2 = null;
         let totalCycles = 1;
+        let setSize = 0;
         let durationMs = 0;
         let currentExpectedAnswer = 0;
 
@@ -404,7 +393,6 @@
         let isRandom = true;
         let isTyped = true;
         let useMissingVar = false;
-        let isDynamicLearning = true;
 
         // Analytics tracking variables
         let sessionStartTime = 0;
@@ -437,10 +425,6 @@
             }
         }
 
-        function isHardFact(a, b) {
-            return HARD_FACTS.some(f => (f.a === a && f.b === b) || (f.a === b && f.b === a));
-        }
-
         function startPractice(isMinimumMode) {
             let baseSet = [];
             reviewQueue = [];
@@ -455,7 +439,6 @@
             isRandom = document.querySelector('input[name="order"]:checked').value === 'random';
             isTyped = document.querySelector('input[name="interaction"]:checked').value === 'typed';
             useMissingVar = document.getElementById('missing-var').checked;
-            isDynamicLearning = document.getElementById('dynamic-learning').checked;
             
             totalCycles = parseInt(document.getElementById('cycles').value) || 1;
             let seconds = parseInt(document.getElementById('duration').value) || 0;
@@ -471,15 +454,10 @@
             if (isMinimumMode) {
                 for (let i = 2; i <= 9; i++) {
                     for (let j = i; j <= 9; j++) {
-                        let item = (isRandom && Math.random() > 0.5 && i !== j) 
-                            ? { a: j, b: i, ans: i * j } 
-                            : { a: i, b: j, ans: i * j };
-                        
-                        baseSet.push(item);
-
-                        // DYNAMIC LEARNING: Extra copy of hard facts from the start
-                        if (isDynamicLearning && isHardFact(i, j)) {
-                            baseSet.push({ a: item.a, b: item.b, ans: item.ans });
+                        if (isRandom && Math.random() > 0.5 && i !== j) {
+                            baseSet.push({ a: j, b: i, ans: i * j });
+                        } else {
+                            baseSet.push({ a: i, b: j, ans: i * j });
                         }
                     }
                 }
@@ -494,21 +472,16 @@
 
                 selectedTables.forEach(t => {
                     for (let i = 2; i <= 9; i++) {
-                        let item = { a: t, b: i, ans: t * i };
-                        baseSet.push(item);
-
-                        // DYNAMIC LEARNING: Extra copy of hard facts from the start
-                        if (isDynamicLearning && isHardFact(t, i)) {
-                            baseSet.push({ a: item.a, b: item.b, ans: item.ans });
-                        }
+                        baseSet.push({ a: t, b: i, ans: t * i });
                     }
                 });
             }
 
+            setSize = baseSet.length;
             practiceList = [];
 
             for (let c = 0; c < totalCycles; c++) {
-                let cycleSet = baseSet.map(item => ({ ...item }));
+                let cycleSet = [...baseSet];
                 if (isRandom) shuffleArray(cycleSet);
                 practiceList = practiceList.concat(cycleSet);
             }
@@ -526,7 +499,8 @@
             clearTimeout(timerId);
             clearTimeout(timerId2);
 
-            document.getElementById('progress-text').innerText = `Problem ${currentIndex + 1} of ${practiceList.length}`;
+            const totalQuestionsInSession = setSize * totalCycles;
+            document.getElementById('progress-text').innerText = `Problem ${currentIndex + 1} of ${totalQuestionsInSession}`;
 
             // Check if we reached the end of the list
             if (currentIndex >= practiceList.length) {
@@ -540,9 +514,11 @@
             // Start timer for average speed tracking
             questionStartTime = Date.now();
 
-            // Determine display format (0 = Standard, 1 = Missing A, 2 = Missing B)
+            // Determine display format 
+            // 0 = Standard, 1 = Missing A, 2 = Missing B
             let problemFormat = 0;
             if (useMissingVar) {
+                // If Missing Var is ON, only pick 1 or 2 (Never 0)
                 problemFormat = Math.floor(Math.random() * 2) + 1;
             }
 
@@ -593,9 +569,12 @@
                         if (inputEl && !inputEl.disabled) {
                             const userVal = parseInt(inputEl.value);
                             
+                            // Check if the current value matches what we expected
                             if (userVal === currentExpectedAnswer) {
+                                // Auto-enter correct answer
                                 checkTypedAnswer();
                             } else {
+                                // Time ran out and it is empty or wrong
                                 inputEl.disabled = true;
                                 inputEl.classList.add('error');
                                 inputEl.value = currentExpectedAnswer; // Show correct answer
@@ -648,10 +627,9 @@
         }
 
         function checkTypedAnswer() {
+            clearTimeout(timerId); // Stop the timeout since they entered an answer
+            
             const inputEl = document.getElementById('user-input');
-            if (!inputEl || inputEl.disabled) return; // Prevent duplicate key firing
-
-            clearTimeout(timerId);
             const userVal = parseInt(inputEl.value);
 
             if (userVal === currentExpectedAnswer) {
@@ -670,7 +648,7 @@
                 }, 400); 
             } else {
                 inputEl.classList.add('error');
-                flagCurrentProblem(); // Log it and handle dynamic re-insertion
+                flagCurrentProblem(); // Log it as wrong behind the scenes
                 
                 setTimeout(() => {
                     inputEl.classList.remove('error');
@@ -683,6 +661,7 @@
                         if (remainingTime > 0) {
                             timerId = setTimeout(() => {
                                 if (inputEl && !inputEl.disabled) {
+                                    // Timer expired on the retry attempt
                                     const retryVal = parseInt(inputEl.value);
                                     if (retryVal === currentExpectedAnswer) {
                                         checkTypedAnswer();
@@ -698,6 +677,7 @@
                                 }
                             }, remainingTime);
                         } else {
+                            // If they spent too long guessing and time is up, force next
                             inputEl.disabled = true;
                             inputEl.value = currentExpectedAnswer;
                             setTimeout(() => {
@@ -714,26 +694,12 @@
             const currentProblem = practiceList[currentIndex];
             if (!currentProblem.flagged) {
                 currentProblem.flagged = true;
-                totalErrors++;
+                totalErrors++; // Increment errors for accuracy calc
                 
-                // Add object to review queue
-                const alreadyQueued = reviewQueue.some(p => p.a === currentProblem.a && p.b === currentProblem.b);
-                if (!alreadyQueued) {
-                    reviewQueue.push({ a: currentProblem.a, b: currentProblem.b, ans: currentProblem.ans }); 
+                const problemString = `${currentProblem.a} &times; ${currentProblem.b} = ${currentProblem.ans}`;
+                if (!reviewQueue.includes(problemString)) {
+                    reviewQueue.push(problemString); 
                 }
-
-                // DYNAMIC LEARNING: Re-insert missed problem 3 steps ahead
-                if (isDynamicLearning && isTyped) {
-                    const insertIndex = Math.min(currentIndex + 4, practiceList.length);
-                    practiceList.splice(insertIndex, 0, {
-                        a: currentProblem.a,
-                        b: currentProblem.b,
-                        ans: currentProblem.ans,
-                        flagged: false
-                    });
-                }
-
-                document.getElementById('progress-text').innerText = `Problem ${currentIndex + 1} of ${practiceList.length}`;
             }
         }
 
@@ -745,7 +711,7 @@
             const completionSubtitle = document.getElementById('completion-subtitle');
 
             if (!isTyped) {
-                // Hide stats for Watch & Wait mode
+                // Hide stats completely for Watch & Wait mode
                 statsContainer.style.display = 'none';
                 completionSubtitle.style.display = 'none';
             } else {
@@ -753,16 +719,17 @@
                 statsContainer.style.display = 'block';
                 completionSubtitle.style.display = 'block';
 
+                // Populate Stats
                 const totalTimeMs = Date.now() - sessionStartTime;
                 const totalSeconds = Math.floor(totalTimeMs / 1000);
                 const mins = Math.floor(totalSeconds / 60);
                 const secs = totalSeconds % 60;
                 document.getElementById('stat-time').innerText = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
-                const totalAttempts = typedQuestionCount + totalErrors;
+                const totalQ = setSize * totalCycles;
                 let accuracy = 100;
-                if (totalAttempts > 0) {
-                    accuracy = Math.max(0, Math.round((typedQuestionCount / totalAttempts) * 100));
+                if (totalQ > 0) {
+                    accuracy = Math.max(0, Math.round(((totalQ - totalErrors) / totalQ) * 100));
                 }
                 document.getElementById('stat-accuracy').innerText = `${accuracy}%`;
 
@@ -781,8 +748,8 @@
                 if (reviewQueue.length > 0) {
                     reviewSection.style.display = 'block';
                     let listHtml = '';
-                    reviewQueue.forEach(prob => {
-                        listHtml += `<li>${prob.a} &times; ${prob.b} = ${prob.ans}</li>`;
+                    reviewQueue.forEach(probStr => {
+                        listHtml += `<li>${probStr}</li>`;
                     });
                     reviewListItems.innerHTML = listHtml;
                 } else {
